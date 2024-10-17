@@ -1,87 +1,120 @@
-import { env } from '$env/dynamic/private';
-import type { SendPhotoOptions } from 'node-telegram-bot-api';
-import TelegramBot from 'node-telegram-bot-api';
+import { env } from "$env/dynamic/private";
+import type { Message, Location, SendPhotoOptions, SendMessageOptions, EditMessageLiveLocationOptions} from "node-telegram-bot-api";
+import TelegramBot from "node-telegram-bot-api";
+
+interface UpdatedLocation extends Location {
+	horizontal_accuracy?: number | undefined;
+	heading?: number | undefined;
+}
 
 const BOT_TOKEN = env.BOT_TOKEN;
 
 if (!BOT_TOKEN) {
-	throw new Error('BOT_TOKEN is not set');
+	throw new Error("BOT_TOKEN is not set");
 }
 
 export const bot = new TelegramBot(BOT_TOKEN);
-
 export const history: any[] = [];
 
-bot.onText(/\/start/, (msg) => {
-	bot.sendMessage(msg.chat.id, 'Welcome to the Datawalk Bot');
+const userState: any = {};
+
+const isPrivateMessage = (msg: Message) => msg.chat.type === "private";
+const isGroupMessage = (msg: Message) =>
+	msg.chat.type === "group" || msg.chat.type === "supergroup";
+
+bot.onText(/\/start/, async (msg) => {
+	if (isPrivateMessage(msg)) {
+		await handleStart(msg);
+	} else if (isGroupMessage(msg)) {
+		await bot.sendMessage(msg.chat.id, "Welcome to the Datawalk Bot (Group)");
+	} else {
+		await bot.sendMessage(msg.chat.id, "Welcome to the Datawalk Bot (not sure hwat the )");
+	}
 });
 
+const handleStart = async (msg: Message) => {
+	await bot.sendMessage(msg.chat.id, "Welcome to the Datawalk Bot (DM)");
+};
+
+const handleJoin = async (msg: Message) => {
+	await bot.sendMessage(msg.chat.id, "Requested to join datawalk (DM)");
+};
+
 bot.onText(/\/photo/, async (msg) => {
-	await bot.sendPhoto(msg.chat.id, 'https://i.ibb.co/SJ5STXr/640x360.jpg');
+	await bot.sendPhoto(msg.chat.id, "https://i.ibb.co/SJ5STXr/640x360.jpg");
 });
 
 // bot.onText(/\/video/, async (msg) => {
 // 	await bot.sendVideo(msg.chat.id, );
 // });
 
-bot.on('photo', async (msg) => {
-	// await bot.sendMessage(msg.chat.id, 'Thanks for your photo!', {});
+bot.on("photo", async (msg) => {
+	const file_id = msg.photo?.[msg.photo.length - 1].file_id;
+	// if (file_id) {
+	// 	const url = await bot.getFileLink(file_id);
+	// }
 
-	msg.photo?.forEach(async (photo) => {
-		const link = await bot.getFileLink(photo.file_id);
-		console.log(`Photo ${photo.file_id} @ ${link}`);
+	const options: SendMessageOptions = {
+		reply_markup: {
+			keyboard: [
+				[
+					{
+						text: "Share Location 📍",
+						request_location: true
+					}
+				]
+			],
+			resize_keyboard: true,
+			one_time_keyboard: true
+		}
+	};
 
-		const options: SendPhotoOptions = { caption: 'Thanks for your photo, this is one from me!', parse_mode: 'Markdown' };
-		await bot.sendPhoto(msg.chat.id, "https://i.ibb.co/SJ5STXr/640x360.jpg", options);
-	});
-
-	history.push({ when: new Date(), msg, location: { latitude: undefined, longitude: undefined } });
-});
-
-bot.on('video', async (msg) => {
-	await bot.sendMessage(msg.chat.id, 'Thanks for your video!');
-});
-
-bot.on('voice', async (msg) => {
-	await bot.sendMessage(msg.chat.id, 'Thanks for your voice message!');
-});
-
-bot.on('audio', async (msg) => {
-	await bot.sendMessage(msg.chat.id, 'Thanks for your audio!');
-});
-
-bot.on('location', async (msg) => {
 	await bot.sendMessage(
 		msg.chat.id,
-		`Thanks for your location! ${msg.location?.latitude}, ${msg.location?.longitude}`
+		"Thanks for your photo. Please share your location to complete the data collection.",
+		options
 	);
 
-	history.push({
-		when: new Date(),
-		msg,
-		location: { latitude: msg.location?.latitude, longitude: msg.location?.longitude }
-	});
+	// Store photo information in userState
+	userState[msg.chat.id] = {
+		photoFileId: file_id,
+		photoMessageId: msg.message_id,
+		locationExpected: true
+	};
 });
 
-// bot.on('message', async (msg) => {
-// 	try {
-// 		// await bot.sendMessage(msg.chat.id, `${msg.text}`, {
-// 		// 	reply_to_message_id: msg.message_id,
-// 		// 	disable_notification: true
-// 		// });
+bot.on("video", async (msg) => {
+	await bot.sendMessage(msg.chat.id, "Thanks for your video!");
+});
 
-// 		history.push({ when: new Date(), msg });
-// 	} catch (e) {
-// 		console.error(e);
-// 	}
-// });
+bot.on("voice", async (msg) => {
+	await bot.sendMessage(msg.chat.id, "Thanks for your voice message!");
+});
 
-// bot.on('callback_query', async (query) => { // for callbacks by inline keyboard
-// 	try {
-// 		await bot.answerCallbackQuery(query.id);
-// 		const text = query.data;
-// 		await bot.sendMessage(query.from.id, `what's up with ${text}?`);
-// 	} catch (e) {
-// 		console.error(e);
-// 	}
-// });
+bot.on("audio", async (msg) => {
+	await bot.sendMessage(msg.chat.id, "Thanks for your audio!");
+});
+
+bot.on("location", async (msg) => {
+	if (userState[msg.chat.id] && userState[msg.chat.id].locationExpected) {
+		await bot.sendMessage(
+			msg.chat.id,
+			`Thanks for your location! ${msg.location?.latitude}, ${msg.location?.longitude}`
+		);
+		delete userState[msg.chat.id];
+	} else {
+		await bot.sendMessage(
+			msg.chat.id,
+			`Thanks for your unexpected sharing of location! ${msg.location?.latitude}, ${msg.location?.longitude}`
+		);
+	}
+});
+
+bot.on("edited_message", async (msg : Message) => {
+	const location = <UpdatedLocation>msg.location;
+
+	bot.sendMessage(
+		msg.chat.id,
+		`Live location updated: Latitude: ${location?.latitude}, Longitude: ${location?.longitude}, Heading: ${location?.horizontal_accuracy}, Horizontal accuracy: ${location?.horizontal_accuracy}`
+	);
+});
