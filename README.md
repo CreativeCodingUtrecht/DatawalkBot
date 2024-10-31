@@ -31,7 +31,7 @@ Then, set this static domain as the Webhook URL in the Telegram Bot.
 ```
 curl -X POST https://api.telegram.org/bot$(BOT_TOKEN)/setWebhook \
     -H "Content-type: application/json" \
-    -d '{"url": "https://assuring-woodcock-seemingly.ngrok-free.app"}'
+    -d '{"url": "https://assuring-woodcock-seemingly.ngrok-free.app/webhook"}'
 
 # this should result in a success response such as:
 {"ok":true,"result":true,"description":"Webhook was set"}
@@ -48,4 +48,13 @@ And make the development server on port `5173` publically available using ngrok:
 ```
 ngrok http --url=assuring-woodcock-seemingly.ngrok-free.app 5173
 
+```
+
+## Telegram Bot
+
+Make sure the following commands have been configured for the Walkshop Bot using `@BotFather` with the command `/setcommands`:
+
+```
+join - Join a Walkshop
+start - Start a new Walkshop
 ```

@@ -1,5 +1,5 @@
 import type { RequestEvent } from "./$types";
-import { bot } from "../lib/telegram/bot";
+import { bot } from "../../../lib/telegram/bot";
 
 // Handle Telegram API Webhook calls
 export async function POST({ request }: RequestEvent) {

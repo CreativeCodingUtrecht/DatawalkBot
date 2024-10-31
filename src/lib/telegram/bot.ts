@@ -14,8 +14,6 @@ if (!BOT_TOKEN) {
 }
 
 export const bot = new TelegramBot(BOT_TOKEN);
-export const history: any[] = [];
-
 const userState: any = {};
 
 const isPrivateMessage = (msg: Message) => msg.chat.type === "private";
@@ -25,20 +23,27 @@ const isGroupMessage = (msg: Message) =>
 bot.onText(/\/start/, async (msg) => {
 	if (isPrivateMessage(msg)) {
 		await handleStart(msg);
-	} else if (isGroupMessage(msg)) {
-		await bot.sendMessage(msg.chat.id, "Welcome to the Datawalk Bot (Group)");
 	} else {
-		await bot.sendMessage(msg.chat.id, "Welcome to the Datawalk Bot (not sure hwat the )");
+		await bot.sendMessage(msg.chat.id, "Sorry, you can only start a new datawalk in a private chat.");
+	}
+});
+
+bot.onText(/\/join/, async (msg) => {
+	if (isPrivateMessage(msg)) {
+		await handleJoin(msg);
+	} else {
+		await bot.sendMessage(msg.chat.id, "Sorry, you can only join a datawalk in a private chat.");
 	}
 });
 
 const handleStart = async (msg: Message) => {
-	await bot.sendMessage(msg.chat.id, "Welcome to the Datawalk Bot (DM)");
+	await bot.sendMessage(msg.chat.id, "Ok! Let's start a new datawalk.");
 };
 
 const handleJoin = async (msg: Message) => {
-	await bot.sendMessage(msg.chat.id, "Requested to join datawalk (DM)");
+	await bot.sendMessage(msg.chat.id, "Ok! Let's join a datawalk.");
 };
+
 
 bot.onText(/\/photo/, async (msg) => {
 	await bot.sendPhoto(msg.chat.id, "https://i.ibb.co/SJ5STXr/640x360.jpg");
