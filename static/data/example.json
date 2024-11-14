@@ -1,0 +1,30 @@
+{
+    "datawalks" : [
+        {
+            "created_by_chat_id": 1357698146,
+            "created_at": 1731599122051,
+            "name": "Niels",
+            "code": "WBAO",
+            "data": [
+                {
+                    "collected_by_chat_id": 1357698146,                    
+                    "created_at": 1731599122051,
+                    "name": "Niels",
+                    "points": [
+                        { 
+                            "type": 3,
+                            "url": "file_1.jpg",
+                            "created_at": 1731599122051,
+                            "text": "Interesting point in the datawalk",
+                            "location": {
+                                "latitude": 52.370216,
+                                "longitude": 4.895168,
+                                "accuracy": 10
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

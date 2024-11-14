@@ -56,5 +56,48 @@ Make sure the following commands have been configured for the Walkshop Bot using
 
 ```
 join - Join a Walkshop
-start - Start a new Walkshop
+create - Create a new Walkshop
 ```
+
+
+## Implementation steps
+
+### Datawalk Bot
+Participants of Datawalkshop use their Telegram app to communicate with the Datawalk Bot. Via the Bot, they can join a workshop and contribute data points.
+
+Connection with Telegram
+*   Walkshop Bot - Setup using `@BotFather` [DONE]
+*   [Telegram Bot API](https://core.telegram.org/bots/api) connection - With [node-telegram-bot-api](https://www.npmjs.com/package/node-telegram-bot-api) + webhook/ngrok [DONE]
+*   Telegram Bot messages - Via Bot library in `bot.ts`, e.g. `bot.on("photo")` [DONE]
+
+Command handling (see `bot.ts`)
+*   Commands
+    *   `/create`
+    *   `/join` 
+    *   `/status`
+    *   `/leave`
+    *   `/list`
+*   Media
+    * Photo
+        * Save to filesystem (JPEG) [DONE]
+    * Video 
+        * Save to filesystem (MP4/MOV) [DONE]
+    * Voice message
+        * Saved to filesystem (MP3, voice recordings as OGA, Ogg Vorbis Audio File [DONE]
+* Location
+    * Location [DONE]
+    * Live location [DONE]
+
+Data
+*   Save to filesystem 
+*   Save to database
+
+### Datawalk Map
+To see the routes and results of a Datawalkshop, participants can reflect on the Datawalk Map. This web-based tool shows the collected data. 
+
+Datawalk visualisation
+*   Map
+
+### Ideas
+
+*   Sharing collected items in Telegram Group (requires attaching Datawalk Bot to this channel)
