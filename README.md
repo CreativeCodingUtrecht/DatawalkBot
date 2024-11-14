@@ -96,7 +96,7 @@ Data
 To see the routes and results of a Datawalkshop, participants can reflect on the Datawalk Map. This web-based tool shows the collected data. 
 
 Datawalk visualisation
-*   Map
+*   Map -- https://dev.to/samuelearl/building-a-geospacial-app-with-sveltekit-deckgl-and-mapbox-part-1-start-with-a-map-59lh
 
 ### Ideas
 
