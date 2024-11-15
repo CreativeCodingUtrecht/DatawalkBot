@@ -29,6 +29,10 @@ export const find = async (criteria: Partial<Datawalk>) => {
 		query = query.where('uuid', '=', criteria.uuid);
 	}
 
+	if (criteria.code) {
+		query = query.where('code', '=', criteria.code);
+	}
+
 	if (criteria.status) {
 		query = query.where('status', '=', criteria.status);
 	}
@@ -36,10 +40,6 @@ export const find = async (criteria: Partial<Datawalk>) => {
 	if (criteria.created_at) {
 		query = query.where('created_at', '=', criteria.created_at);
 	}
-
-	// if (criteria.updated_at) {
-	// 	query = query.where('updated_at', '=', criteria.updated_at);
-	// }
 
 	return await query.selectAll().execute();
 }

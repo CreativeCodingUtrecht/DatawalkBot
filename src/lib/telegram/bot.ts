@@ -1,9 +1,10 @@
 import { env } from "$env/dynamic/private";
 import type { Message, Location, SendPhotoOptions, SendMessageOptions, EditMessageLiveLocationOptions} from "node-telegram-bot-api";
-import { type DataPoint, type UpdatedLocation, DataPointType } from "$lib/telegram/types";
+import type {UpdatedLocation } from "$lib/telegram/types";
 import TelegramBot from "node-telegram-bot-api";
-
-import * as DatawalkRepository from '$lib/database/DatawalkRepository';
+import * as DatawalkRepository from '$lib/database/repositories/DatawalkRepository';
+import * as ParticipantRepository from '$lib/database/repositories/ParticipantRepository';
+import * as TrackPointRepository from '$lib/database/repositories/TrackPointRepository';
 import type { Datawalk } from '$lib/database/types';
 
 const BOT_TOKEN = env.BOT_TOKEN;
@@ -70,8 +71,10 @@ const handleCreate = async (msg: Message) => {
 
 	const code = datawalk?.code;
 
+	participate(msg, datawalk);
+
 	participants[msg.chat.id] = code;
-	console.log("Participants list:", participants);
+	// console.log("Participants list:", participants);
 
 	await bot.sendMessage(msg.chat.id, `Cool! I've created the datawalkshop <b>${datawalk?.name}</b> with code <b>${code}</b>`,{ parse_mode: "HTML" });
 };
@@ -86,13 +89,15 @@ const handleJoin = async (msg: Message) => {
 	const datawalk = await DatawalkRepository.findByCode(code);
 
 	if (datawalk) {
-		participants[msg.chat.id] = datawalk.code;
-		console.log("Participants list:", participants);		
+		participate(msg, datawalk);
 
-		await bot.sendMessage(
-			msg.chat.id,
-			`Welcome to datawalk <b>${datawalk.name}</b> with code <b>${code}</b>!`,{parse_mode: "HTML"}
-		);	
+		participants[msg.chat.id] = datawalk.code;
+		// console.log("Participants list:", participants);		
+
+		// await bot.sendMessage(
+		// 	msg.chat.id,
+		// 	`Welcome to datawalk <b>${datawalk.name}</b> with code <b>${code}</b>!`,{parse_mode: "HTML"}
+		// );	
 	} else {
 		await bot.sendMessage(
 			msg.chat.id,
@@ -114,20 +119,28 @@ const handleList = async (msg: Message) => {
 }
 
 const handleStatus = async (msg: Message) => {
+	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
 
-	if (Object.keys(participants).includes(`${msg.chat.id}`)) {
-		const code = participants[msg.chat.id]	
-		await bot.sendMessage(msg.chat.id, `You are participating in datawalk with code <b>${code}</b>`,{parse_mode: "HTML"});
-	} else {
-		await bot.sendMessage(msg.chat.id, `You are currently not participating in a datawalk`,{parse_mode: "HTML"});
-	}
+	if (participant) {
+		const datawalk = await DatawalkRepository.findById(participant.current_datawalk_id);
+		if (datawalk) {
+			await bot.sendMessage(msg.chat.id, `You are participating in datawalk with code <b>${datawalk.code}</b>`,{parse_mode: "HTML"});
+			return;
+		}				
+	} 
+
+	await bot.sendMessage(msg.chat.id, `You are currently not participating in a datawalk`,{parse_mode: "HTML"});
 }
 
 const handleLeave = async (msg: Message) => {
-	if (Object.keys(participants).includes(`${msg.chat.id}`)) {
-		const code = participants[msg.chat.id];
-		delete participants[msg.chat.id]
-		await bot.sendMessage(msg.chat.id, `You are no longer participating in datawalk with code <b>${code}</b>`,{parse_mode: "HTML"});
+	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
+
+	if (participant?.current_datawalk_id) {
+		const datawalk = await DatawalkRepository.findById(participant.current_datawalk_id);
+
+		participant.current_datawalk_id = null;
+		await ParticipantRepository.update(participant.id, participant);
+		await bot.sendMessage(msg.chat.id, `You are no longer participating in datawalk with code <b>${datawalk.code}</b>`,{parse_mode: "HTML"});
 	} else {
 		await bot.sendMessage(msg.chat.id, `You are currently not participating in a datawalk`,{parse_mode: "HTML"});
 	}
@@ -273,19 +286,37 @@ bot.on("location", async (msg : Message) => {
 		return;
 	}
 
-	if (userState[msg.chat.id] && userState[msg.chat.id].locationExpected) {
-		await bot.sendMessage(
-			msg.chat.id,
-			`Recorded location with media: ${msg.location?.latitude}, ${msg.location?.longitude}`
-		);
-		delete userState[msg.chat.id];
-	} else {
-		await bot.sendMessage(
-			msg.chat.id,
-			`Thanks for your unexpected sharing of location! ${msg.location?.latitude}, ${msg.location?.longitude}`
-		);
+	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
+	const datawalk = await DatawalkRepository.findById(participant?.current_datawalk_id);
+
+	if (datawalk) {
+		const trackpoint = await TrackPointRepository.create({
+			latitude: msg.location.latitude,
+			longitude: msg.location.longitude,
+			accuracy: msg.location.horizontal_accuracy,
+			heading: msg.location.heading,
+			participant_id: participant.id,
+			datawalk_id: datawalk.id
+		});
+		console.log("Added data point:", trackpoint);
+
+		// await bot.sendLocation(participant.chat_id, trackpoint?.latitude, trackpoint?.longitude);
 	}
-	await bot.sendLocation(msg.chat.id, msg.location?.latitude, msg.location?.longitude);
+
+	// if (userState[msg.chat.id] && userState[msg.chat.id].locationExpected) {
+	// 	await bot.sendMessage(
+	// 		msg.chat.id,
+	// 		`Recorded location with media: ${msg.location?.latitude}, ${msg.location?.longitude}`
+	// 	);
+	// 	delete userState[msg.chat.id];
+	// } else {
+	// 	await bot.sendMessage(
+	// 		msg.chat.id,
+	// 		`Thanks for your unexpected sharing of location! ${msg.location?.latitude}, ${msg.location?.longitude}`
+	// 	);
+	// }
+
+	
 });
 
 bot.on("edited_message", async (msg : Message) => {
@@ -304,4 +335,28 @@ bot.on("edited_message", async (msg : Message) => {
 		delete userState[msg.chat.id];
 	}
 });
+
+
+const participate = async (msg: Message, datawalk : Datawalk) => {
+	let participant = await ParticipantRepository.findByChatId(msg.chat.id);
+
+	if (!participant) {
+		participant = await ParticipantRepository.create({
+			chat_id: msg.chat.id,
+			username: msg.chat.username,
+			first_name: msg.chat.first_name,
+			last_name: msg.chat.last_name,
+		});	
+	}
+
+	participant.current_datawalk_id = datawalk.id;
+	await ParticipantRepository.update(participant.id, participant);
+
+	console.log("Participant:", participant);
+	
+	await bot.sendMessage(
+		msg.chat.id,
+		`Welcome to datawalk <b>${datawalk.name}</b> with code <b>${datawalk.code}</b>!`,{parse_mode: "HTML"}
+	);	
+}
 
