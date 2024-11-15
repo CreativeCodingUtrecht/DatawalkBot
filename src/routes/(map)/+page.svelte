@@ -1,5 +1,7 @@
 <script lang="ts">
+	import type { PageData } from './$types';
 	import { onMount, onDestroy } from "svelte";
+	
 	import mapboxgl from "mapbox-gl";
 
 	// https://vite.dev/guide/env-and-mode
@@ -7,6 +9,11 @@
     if (!MAPBOX_TOKEN) {
         throw new Error("MAPBOX_TOKEN is not set");
     }
+
+	export let data: PageData;
+	const { datawalks } = data;
+
+	console.log("Datawalks:", datawalks);
 
 	let mapElement;
 	let map = null;
