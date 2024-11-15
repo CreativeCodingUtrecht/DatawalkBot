@@ -8,7 +8,7 @@ export class StaticMigrationProvider implements MigrationProvider {
 			"migration-initial": await import('./migrations/migration-initial')
 		};
 
-		console.log('Available migrations:', migrations);
+		// console.log('Available migrations:', migrations);
 
 		return migrations;
 	}

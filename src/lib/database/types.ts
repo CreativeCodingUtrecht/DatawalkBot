@@ -9,6 +9,7 @@ export interface DatawalkTable {
 	created_at: Generated<Date>	
 	name: string;
 	uuid: Generated<string>;
+	code: Generated<string>;	
 	status: Generated<'active' | 'archived'>;
 	// updated_at: Generated<Date>
 }

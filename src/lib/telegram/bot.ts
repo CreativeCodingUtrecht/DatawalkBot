@@ -1,7 +1,10 @@
 import { env } from "$env/dynamic/private";
 import type { Message, Location, SendPhotoOptions, SendMessageOptions, EditMessageLiveLocationOptions} from "node-telegram-bot-api";
-import { type Datawalk, type DataPoint, type UpdatedLocation, DataPointType } from "$lib/telegram/types";
+import { type DataPoint, type UpdatedLocation, DataPointType } from "$lib/telegram/types";
 import TelegramBot from "node-telegram-bot-api";
+
+import * as DatawalkRepository from '$lib/database/DatawalkRepository';
+import type { Datawalk } from '$lib/database/types';
 
 const BOT_TOKEN = env.BOT_TOKEN;
 if (!BOT_TOKEN) {
@@ -16,8 +19,6 @@ const participants : any = {};
 const isPrivateMessage = (msg: Message) => msg.chat.type === "private";
 const isGroupMessage = (msg: Message) =>
 	msg.chat.type === "group" || msg.chat.type === "supergroup";
-
-const datawalks : Datawalk[] = [];
 
 bot.onText(/\/create/, async (msg : Message) => {
 	if (isPrivateMessage(msg)) {
@@ -60,48 +61,49 @@ bot.onText(/\/leave/, async (msg : Message) => {
 });
 
 const handleCreate = async (msg: Message) => {
-	const code = generateString(4);
-
-	const datawalk : Datawalk = {
-		created_by_chat_id: msg.chat.id,
-		created_at: Date.now(),
-		name: msg.chat.first_name,
-		code,
-		data: []
-	};
+	const datawalk = await DatawalkRepository.create({
+		name: `Datawalkshop with ${msg.chat?.first_name}`,
+		status: 'active'
+	});
 
 	console.log("Created datawalk:", datawalk);
-	datawalks.push(datawalk);
 
-	participants[msg.chat.id] = datawalk.code;
+	const code = datawalk?.code;
 
-	await bot.sendMessage(msg.chat.id, `Cool! I've created a new datawalk with code <b>${code}</b>`,{ parse_mode: "HTML" });
+	participants[msg.chat.id] = code;
+	console.log("Participants list:", participants);
+
+	await bot.sendMessage(msg.chat.id, `Cool! I've created the datawalkshop <b>${datawalk?.name}</b> with code <b>${code}</b>`,{ parse_mode: "HTML" });
 };
 
 const handleJoin = async (msg: Message) => {
 	const code = msg.text?.replace("/join", "").trim();
-	if (code === "") {
-		await bot.sendMessage(msg.chat.id, `Please provide a code to join a datawalk, e.g. "<b>/join YGXH</b>"`,{parse_mode: "HTML"});
+	if (!code || code === "") {
+		await bot.sendMessage(msg.chat.id, `Please provide a code to join a datawalk such as <b>YGXH</b>`,{parse_mode: "HTML"});
 		return;
 	}
 
-	await bot.sendMessage(msg.chat.id, `Ok! Let's join datawalk with code ${code}`);
+	const datawalk = await DatawalkRepository.findByCode(code);
 
-	datawalks.forEach(async (datawalk : Datawalk) => {
-		if (datawalk.code === code) {
-			participants[msg.chat.id] = datawalk.code;
+	if (datawalk) {
+		participants[msg.chat.id] = datawalk.code;
+		console.log("Participants list:", participants);		
 
-			console.log("Participants list:", participants);
-
-			await bot.sendMessage(
-				msg.chat.id,
-				`Welcome to datawalk with code <b>${code}</b>`,{parse_mode: "HTML"}
-			);	
-		}
-	});
+		await bot.sendMessage(
+			msg.chat.id,
+			`Welcome to datawalk <b>${datawalk.name}</b> with code <b>${code}</b>!`,{parse_mode: "HTML"}
+		);	
+	} else {
+		await bot.sendMessage(
+			msg.chat.id,
+			`Sorry, I couldn't find a datawalk with code <b>${code}</b>`,{parse_mode: "HTML"}
+		);
+	}
 };
 
 const handleList = async (msg: Message) => {
+	let datawalks = await DatawalkRepository.findAll();
+
 	const codes : string[] = datawalks.map((datawalk : Datawalk) => datawalk.code);
 
 	if (codes.length > 0) {
@@ -130,14 +132,6 @@ const handleLeave = async (msg: Message) => {
 		await bot.sendMessage(msg.chat.id, `You are currently not participating in a datawalk`,{parse_mode: "HTML"});
 	}
 }
-
-// bot.onText(/\/photo/, async (msg : Message) => {
-// 	await bot.sendPhoto(msg.chat.id, "https://i.ibb.co/SJ5STXr/640x360.jpg");
-// });
-
-// bot.onText(/\/video/, async (msg) => {
-// 	await bot.sendVideo(msg.chat.id, );
-// });
 
 bot.on("photo", async (msg : Message) => {
 	const file_id = msg.photo?.[msg.photo.length - 1].file_id;
@@ -311,15 +305,3 @@ bot.on("edited_message", async (msg : Message) => {
 	}
 });
 
-// declare all characters
-const characters ='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-
-function generateString(length) {
-    let result = "";
-    const charactersLength = characters.length;
-    for ( let i = 0; i < length; i++ ) {
-        result += characters.charAt(Math.floor(Math.random() * charactersLength));
-    }
-
-    return result;
-}

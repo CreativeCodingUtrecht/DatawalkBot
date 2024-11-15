@@ -10,6 +10,10 @@ export const findByUuid = async (uuid: string) => {
 	return await db.selectFrom('datawalk').where('uuid', '=', uuid).selectAll().executeTakeFirst();
 }
 
+export const findByCode = async (code: string) => {
+	return await db.selectFrom('datawalk').where('code', '=', code).selectAll().executeTakeFirst();
+}
+
 export const find = async (criteria: Partial<Datawalk>) => {
 	let query = db.selectFrom('datawalk');
 
@@ -55,6 +59,10 @@ export const create = async (datawalk: NewDatawalk) => {
 		datawalk.uuid = uuidv4();
 	}
 
+	if (!datawalk.code || datawalk.code.length <= 4) {
+		datawalk.code = generateDatawalkCode(4);
+	}
+
 	return await db.insertInto('datawalk').values(datawalk).returningAll().executeTakeFirst();
 }
 
@@ -68,4 +76,14 @@ export const removeByUuid = async (uuid: string) => {
 
 export const removeAll = async () => {
 	return await db.deleteFrom('datawalk').execute();
+}
+
+const CODE_CHARACTERS ='ABCDEFGHIJKLMNPQRSTUVWXYZ';
+
+const generateDatawalkCode = (length : number) => {
+    let result = "";
+    for ( let i = 0; i < length; i++ ) {
+        result += CODE_CHARACTERS.charAt(Math.floor(Math.random() * CODE_CHARACTERS.length));
+    }
+    return result;
 }

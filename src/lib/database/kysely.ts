@@ -40,16 +40,14 @@ const isVitest = () => {
 };
 
 const configureDialect = () => {
-	// Browser
-	if (browser) return sqliteDialect;
-
 	// Vitest
 	if (isVitest()) {
 		return sqliteInMemoryDialect;
 	}
 
 	// Vite server or Vite build
-	return dummyDialect;
+	// return dummyDialect;
+	return sqliteDialect;
 };
 
 const configureLog = (): LogConfig => {
