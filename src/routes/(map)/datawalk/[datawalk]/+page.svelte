@@ -3,13 +3,8 @@
 	import { onMount, onDestroy } from "svelte";
 	import * as turf from "@turf/turf";
 
-	import mapboxgl from "mapbox-gl";
-
-	// https://vite.dev/guide/env-and-mode
-	const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-	if (!MAPBOX_TOKEN) {
-		throw new Error("MAPBOX_TOKEN is not set");
-	}
+	import maplibregl, { Map } from "maplibre-gl";
+	import "maplibre-gl/dist/maplibre-gl.css";
 
 	export let data: PageData;
 	const { datawalk, trackpoints } = data;
@@ -26,24 +21,41 @@
 
 	console.log("Coordinates:", coordinates);
 
-	let mapElement;
-	let map = null;
-	let accessToken = MAPBOX_TOKEN;
-	let mapStyle = "mapbox://styles/mapbox/light-v9";
+	let map : Map;
+
+	const style = {
+		version: 8,
+		sources: {
+			osm: {
+				type: "raster",
+				tiles: ["https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"],
+				tileSize: 256,
+				attribution: "&copy; OpenStreetMap Contributors",
+				maxzoom: 19
+			}
+		},
+		layers: [
+			{
+				id: "osm",
+				type: "raster",
+				source: "osm" // This must match the source key above
+			}
+		]
+	};
+
 	let viewState = {
 		zoom: 17.5,
 		latitude: center.geometry.coordinates[1],
 		longitude: center.geometry.coordinates[0],
-		pitch: 40,
+		pitch: 30,
 		bearing: 0
 	};
 
 	onMount(() => {
-		map = new mapboxgl.Map({
-			accessToken: accessToken,
-			container: mapElement,
+		map = new maplibregl.Map({
+			container: "map",
 			interactive: true,
-			style: mapStyle,
+			style: style,
 			center: [viewState.longitude, viewState.latitude],
 			zoom: viewState.zoom,
 			pitch: viewState.pitch,
@@ -78,11 +90,13 @@
 					"line-dasharray": [2, 2]
 				}
 			});
+
+			map.addControl(new maplibregl.NavigationControl());
 		});
 	});
 </script>
 
-<div id="map" bind:this={mapElement}></div>
+<div id="map"></div>
 
 <style>
 	#map {
