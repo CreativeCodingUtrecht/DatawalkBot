@@ -3,7 +3,8 @@
 	import { onMount, onDestroy } from "svelte";
 	import * as turf from "@turf/turf";
 
-	import maplibregl, { Map } from "maplibre-gl";
+	import maplibregl from "maplibre-gl";
+	import type { Map } from "maplibre-gl";
 	import "maplibre-gl/dist/maplibre-gl.css";
 
 	export let data: PageData;
@@ -21,16 +22,16 @@
 
 	console.log("Coordinates:", coordinates);
 
-	let map : Map;
+	let map: Map;
 
-	const style = {
+	const style : maplibregl.StyleSpecification = {
 		version: 8,
 		sources: {
 			osm: {
 				type: "raster",
 				tiles: ["https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"],
 				tileSize: 256,
-				attribution: "&copy; OpenStreetMap Contributors",
+				attribution: "&copy; Creative Coding Utrecht",
 				maxzoom: 19
 			}
 		},
@@ -91,7 +92,16 @@
 				}
 			});
 
+			// map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
 			map.addControl(new maplibregl.NavigationControl());
+			map.addControl(
+				new maplibregl.GeolocateControl({
+					positionOptions: { enableHighAccuracy: true },
+					trackUserLocation: true
+				}),
+				"top-right"
+			);
+			map.addControl(new maplibregl.ScaleControl({ maxWidth: 80, unit: "metric" }), "bottom-left");
 		});
 	});
 </script>
