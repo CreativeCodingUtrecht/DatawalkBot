@@ -1,37 +1,44 @@
 <script lang="ts">
-	import type { PageData } from './$types';
+	import type { PageData } from "./$types";
 	import { onMount, onDestroy } from "svelte";
-	
+	import * as turf from "@turf/turf";
+
 	import mapboxgl from "mapbox-gl";
 
 	// https://vite.dev/guide/env-and-mode
-    const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-    if (!MAPBOX_TOKEN) {
-        throw new Error("MAPBOX_TOKEN is not set");
-    }
+	const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+	if (!MAPBOX_TOKEN) {
+		throw new Error("MAPBOX_TOKEN is not set");
+	}
 
 	export let data: PageData;
-	const { datawalks } = data;
+	const { datawalk, trackpoints } = data;
 
-	console.log("Datawalks:", datawalks);
+	console.log("Datawalk:", datawalk);
+	console.log("Trackpoints:", trackpoints);
+
+	const coordinates = trackpoints.map((trackpoint) => {
+		return [trackpoint.longitude, trackpoint.latitude];
+	});
+
+	const center = turf.center(turf.points(coordinates));
+	console.log("Center:", center.geometry.coordinates);
+
+	console.log("Coordinates:", coordinates);
 
 	let mapElement;
 	let map = null;
 	let accessToken = MAPBOX_TOKEN;
 	let mapStyle = "mapbox://styles/mapbox/light-v9";
-	let viewState = {        
-        zoom: 15,        
-		longitude: 5.087679636388074,
-		latitude: 52.10383316561075,
-		pitch: 0,
+	let viewState = {
+		zoom: 17.5,
+		latitude: center.geometry.coordinates[1],
+		longitude: center.geometry.coordinates[0],
+		pitch: 40,
 		bearing: 0
 	};
 
 	onMount(() => {
-		createMap();
-	});
-
-	function createMap() {
 		map = new mapboxgl.Map({
 			accessToken: accessToken,
 			container: mapElement,
@@ -42,8 +49,37 @@
 			pitch: viewState.pitch,
 			bearing: viewState.bearing
 		});
-	}
 
+		map.on("load", () => {
+			map.addSource("route", {
+				type: "geojson",
+				data: {
+					type: "Feature",
+					properties: {},
+					geometry: {
+						type: "LineString",
+						coordinates: coordinates
+					}
+				}
+			});
+
+			map.addLayer({
+				id: "route",
+				type: "line",
+				source: "route",
+				layout: {
+					"line-join": "round",
+					"line-cap": "round"
+				},
+				paint: {
+					"line-color": "#f0f",
+					"line-width": 4,
+					"line-opacity": 0.5,
+					"line-dasharray": [2, 2]
+				}
+			});
+		});
+	});
 </script>
 
 <div id="map" bind:this={mapElement}></div>

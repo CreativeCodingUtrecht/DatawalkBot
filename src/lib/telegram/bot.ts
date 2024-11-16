@@ -322,18 +322,35 @@ bot.on("location", async (msg : Message) => {
 bot.on("edited_message", async (msg : Message) => {
 	const location = <UpdatedLocation>msg.location;
 
+	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
+	const datawalk = await DatawalkRepository.findById(participant?.current_datawalk_id);
+
+	if (datawalk) {
+		const trackpoint = await TrackPointRepository.create({
+			latitude: msg.location.latitude,
+			longitude: msg.location.longitude,
+			accuracy: msg.location.horizontal_accuracy,
+			heading: msg.location.heading,
+			participant_id: participant.id,
+			datawalk_id: datawalk.id
+		});
+		console.log("Added data point:", trackpoint);
+
+		// await bot.sendLocation(participant.chat_id, trackpoint?.latitude, trackpoint?.longitude);
+	}
+
 	// bot.sendMessage(
 	// 	msg.chat.id,
 	// 	`Live location updated: Latitude: ${location?.latitude}, Longitude: ${location?.longitude}, Heading: ${location?.horizontal_accuracy}, Horizontal accuracy: ${location?.horizontal_accuracy}`
 	// );
 
-	if (userState[msg.chat.id] && userState[msg.chat.id].locationExpected) {
-		await bot.sendMessage(
-			msg.chat.id,
-			`Recorded location with media: ${location?.latitude}, ${location?.longitude}`
-		);
-		delete userState[msg.chat.id];
-	}
+	// if (userState[msg.chat.id] && userState[msg.chat.id].locationExpected) {
+	// 	await bot.sendMessage(
+	// 		msg.chat.id,
+	// 		`Recorded location with media: ${location?.latitude}, ${location?.longitude}`
+	// 	);
+	// 	delete userState[msg.chat.id];
+	// }
 });
 
 

@@ -7,7 +7,7 @@ export const findById = async (id: number) => {
 }
 
 export const findByDatawalkId = async (datawalk_id: number) => {
-	return await db.selectFrom('trackpoint').where('datawalk_id', '=', datawalk_id).selectAll().executeTakeFirst();
+	return await db.selectFrom('trackpoint').where('datawalk_id', '=', datawalk_id).selectAll().execute();
 }
 
 export const findByDatawalkParticipantId = async (datawalk_id: number, participant_id: number) => {
