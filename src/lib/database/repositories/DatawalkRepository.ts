@@ -49,18 +49,11 @@ export const find = async (criteria: Partial<Datawalk>) => {
 	return await query.selectAll().execute();
 };
 
-export const findWithParticipants = async (criteria: Partial<Datawalk>) => {
-	let query = db.selectFrom("datawalk").selectAll("datawalk");
-
-	if (criteria.id) {
-		query.where("datawalk.id", "=", criteria.id);
-	}
-
-	if (criteria.code) {
-		query.where("datawalk.code", "=", criteria.code);
-	}
-
-	return await query
+export const findWithParticipantsByCode = async (code: string) => {
+	return await db
+		.selectFrom("datawalk")
+		.selectAll("datawalk")
+		.where("datawalk.code", "=", code)
 		.select((eb) => [
 			// participants
 			jsonArrayFrom(

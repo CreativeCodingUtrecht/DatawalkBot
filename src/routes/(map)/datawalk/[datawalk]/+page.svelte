@@ -103,7 +103,7 @@
 						"line-color": color,
 						"line-width": 4,
 						"line-opacity": 0.5,
-						// "line-dasharray": [2, 2]
+						"line-dasharray": [4, 2]
 					}
 				});
 
@@ -130,21 +130,20 @@
 
 				for (const trackpoint of participant.trackpoints) {
 					for (const datapoint of trackpoint.datapoints) {
-
 						const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
-								`${datapoint.created_at}<br/>${participant.first_name} shared a <a href="/media/${datapoint.uuid}" target="_new">${datapoint.media_type}</a>${datapoint.caption ? `<br /><b>${datapoint.caption}</b>` : ""}`
-							);
+							`${datapoint.created_at}<br/>${participant.first_name} shared a <a href="/media/${datapoint.uuid}" target="_new">${datapoint.media_type}</a><br /><br />${datapoint.media_type == "photo" ? `<img width=200 src="/media/${datapoint.uuid}"><br />` : ""}${datapoint.caption ? `<b>${datapoint.caption}</b><br />` : ""}`
+						).setMaxWidth("400px");
 
 						let marker;
 						if (datapoint.media_type !== "photo") {
 							marker = new mapboxgl.Marker({ color });
 						} else {
-							const el = document.createElement('div');
-							el.className = 'imagemarker';
+							const el = document.createElement("div");
+							el.className = "imagemarker";
 							el.style.backgroundImage = `url(/media/${datapoint.uuid})`;
 							el.style.width = `40px`;
-        					el.style.height = `40px`;
-					        el.style.backgroundSize = '100%';							
+							el.style.height = `40px`;
+							el.style.backgroundSize = "100%";
 
 							marker = new mapboxgl.Marker(el);
 						}

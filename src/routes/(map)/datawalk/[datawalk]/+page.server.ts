@@ -7,7 +7,7 @@ import * as DataPointRepository from "$lib/database/repositories/DataPointReposi
 
 export const load: PageServerLoad = async ({ params }) => {
 	const code = params.datawalk as string;
-	const datawalk: any = await DatawalkRepository.findWithParticipants({code});
+	const datawalk: any = await DatawalkRepository.findWithParticipantsByCode(code);
 
 	if (datawalk) {
 		const participants = datawalk.participants_contributing;
