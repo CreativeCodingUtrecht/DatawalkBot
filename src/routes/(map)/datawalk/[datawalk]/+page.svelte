@@ -45,10 +45,10 @@
 	let accessToken = MAPBOX_TOKEN;
 	let mapStyle = "mapbox://styles/mapbox/light-v9";
 	let viewState = {
-		zoom: 19,
+		zoom: 18,
 		latitude: latitude,
 		longitude: longitude,
-		pitch: 40,
+		pitch: 60,
 		bearing: 0
 	};
 
@@ -119,7 +119,7 @@
 
 					map.getCanvas().style.cursor = "pointer";
 					const coordinates = e.lngLat;
-					const description = `<h3>${participant.first_name}</h3>`;
+					const description = `<b>${participant.first_name}</b>`;
 					popup.setLngLat(coordinates).setHTML(description).addTo(map);
 				});
 
@@ -130,9 +130,11 @@
 
 				for (const trackpoint of participant.trackpoints) {
 					for (const datapoint of trackpoint.datapoints) {
-						const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
-							`${datapoint.created_at}<br/>${participant.first_name} shared a <a href="/media/${datapoint.uuid}" target="_new">${datapoint.media_type}</a><br /><br />${datapoint.media_type == "photo" ? `<img width=200 src="/media/${datapoint.uuid}"><br />` : ""}${datapoint.caption ? `<b>${datapoint.caption}</b><br />` : ""}`
-						).setMaxWidth("400px");
+						const popup = new mapboxgl.Popup({ offset: 25 })
+							.setHTML(
+								`${datapoint.created_at}<br/><b>${participant.first_name}</b> shared a <a href="/media/${datapoint.uuid}" target="_new">${datapoint.media_type}</a><br /><br />${datapoint.media_type == "photo" ? `<img width=200 src="/media/${datapoint.uuid}"><br />` : ""}${datapoint.caption ? `<b>${datapoint.caption}</b><br />` : ""}`
+							)
+							.setMaxWidth("400px");
 
 						let marker;
 						if (datapoint.media_type !== "photo") {
@@ -160,6 +162,10 @@
 </script>
 
 <div id="map"></div>
+<div id="info">
+	<img src="/images/pigeon.webp" width="60" alt="Pigeon" />
+	Future Frictions &gt; Datawalk
+</div>
 
 <style>
 	#map {
@@ -179,4 +185,20 @@
 		cursor: pointer;
 		padding: 0;
 	}
+
+	:global(.mapboxgl-popup) {
+		font-family: "Quicksand", sans-serif;
+	}
+
+	#info {
+		display: flex;
+		align-items: center;
+		position: absolute;
+		top: 20px;
+		left: 20px;
+		font-family: Uni, sans-serif;
+		text-transform: uppercase;
+		font-size: 1.25rem;
+	}
+
 </style>

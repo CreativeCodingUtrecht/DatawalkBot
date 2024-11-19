@@ -4,7 +4,7 @@ import * as ParticipantRepository from '$lib/database/repositories/ParticipantRe
 import type { Participant } from '$lib/database/types';
 
 export const load: PageServerLoad = async () => {
-    let datawalks : any = await DatawalkRepository.findAllWithParticipants();
+    let datawalks : any = await DatawalkRepository.findAll();
     
     for (let datawalk of datawalks) {
         const participants = await ParticipantRepository.find({ current_datawalk_id: datawalk.id });

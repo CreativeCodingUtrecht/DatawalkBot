@@ -46,7 +46,7 @@ export const find = async (criteria: Partial<Datawalk>) => {
 		query = query.where("created_at", "=", criteria.created_at);
 	}
 
-	return await query.selectAll().execute();
+	return await query.orderBy('created_at','desc').selectAll().execute();
 };
 
 export const findWithParticipantsByCode = async (code: string) => {
