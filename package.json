@@ -21,6 +21,7 @@
 		"@sveltejs/vite-plugin-svelte": "^3.0.0",
 		"@types/better-sqlite3": "^7.6.11",
 		"@types/eslint": "^9.6.0",
+		"@types/mime-types": "^2.1.4",
 		"eslint": "^9.0.0",
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-svelte": "^2.36.0",
@@ -37,11 +38,13 @@
 	"type": "module",
 	"dependencies": {
 		"@sveltejs/adapter-node": "^5.2.7",
+		"@thi.ng/color": "^5.7.12",
 		"@turf/turf": "^7.1.0",
 		"@types/node-telegram-bot-api": "^0.64.7",
 		"better-sqlite3": "^11.5.0",
 		"kysely": "^0.27.4",
 		"mapbox-gl": "^3.8.0",
+		"mime-types": "^2.1.35",
 		"node-telegram-bot-api": "^0.66.0",
 		"uuid": "^11.0.3"
 	}

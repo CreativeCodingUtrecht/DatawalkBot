@@ -1,5 +1,5 @@
-import type { QueryResult, RootOperationNode, UnknownRow } from 'kysely';
-import type { KyselyPlugin, PluginTransformQueryArgs, PluginTransformResultArgs } from 'kysely';
+import type { QueryResult, RootOperationNode, UnknownRow } from "kysely";
+import type { KyselyPlugin, PluginTransformQueryArgs, PluginTransformResultArgs } from "kysely";
 
 export class SerializeJSONPlugin implements KyselyPlugin {
 	transformQuery(args: PluginTransformQueryArgs): RootOperationNode {
@@ -18,7 +18,7 @@ export class SerializeJSONPlugin implements KyselyPlugin {
 
 function parseRow(row: UnknownRow): UnknownRow {
 	return Object.entries(row).reduce<UnknownRow>((row, [key, value]) => {
-		if (typeof value === 'string' && value.match(/^[\[\{]/) != null) {
+		if (typeof value === "string" && value.match(/^[\[\{]/) != null) {
 			try {
 				value = JSON.parse(value);
 			} catch (err) {

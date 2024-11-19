@@ -1,58 +1,177 @@
-import { v4 as uuidv4, validate as validate_uuid } from 'uuid';
-import db from '$lib/database';
-import type { DatawalkUpdate, Datawalk, NewDatawalk } from '$lib/database/types';
+import { v4 as uuidv4, validate as validate_uuid } from "uuid";
+import db from "$lib/database";
+import type { DatawalkUpdate, Datawalk, NewDatawalk } from "$lib/database/types";
+import { jsonArrayFrom, jsonObjectFrom } from "kysely/helpers/sqlite";
 
 export const findById = async (id: number) => {
-	return await db.selectFrom('datawalk').where('id', '=', id).selectAll().executeTakeFirst();
-}
+	return await db.selectFrom("datawalk").where("id", "=", id).selectAll().executeTakeFirst();
+};
+
+export const findWithDataById = async (id: number) => {
+	return await db.selectFrom("datawalk").where("id", "=", id).selectAll().executeTakeFirst();
+};
 
 export const findByUuid = async (uuid: string) => {
-	return await db.selectFrom('datawalk').where('uuid', '=', uuid).selectAll().executeTakeFirst();
-}
+	return await db.selectFrom("datawalk").where("uuid", "=", uuid).selectAll().executeTakeFirst();
+};
 
 export const findByCode = async (code: string) => {
-	return await db.selectFrom('datawalk').where('code', '=', code).selectAll().executeTakeFirst();
-}
+	return await db.selectFrom("datawalk").where("code", "=", code).selectAll().executeTakeFirst();
+};
 
 export const find = async (criteria: Partial<Datawalk>) => {
-	let query = db.selectFrom('datawalk');
+	let query = db.selectFrom("datawalk");
 
 	if (criteria.id) {
-		query = query.where('id', '=', criteria.id);
+		query = query.where("id", "=", criteria.id);
 	}
 
 	if (criteria.name) {
-		query = query.where('name', '=', criteria.name);
+		query = query.where("name", "=", criteria.name);
 	}
 
 	if (criteria.uuid) {
-		query = query.where('uuid', '=', criteria.uuid);
+		query = query.where("uuid", "=", criteria.uuid);
 	}
 
 	if (criteria.code) {
-		query = query.where('code', '=', criteria.code);
+		query = query.where("code", "=", criteria.code);
 	}
 
 	if (criteria.status) {
-		query = query.where('status', '=', criteria.status);
+		query = query.where("status", "=", criteria.status);
 	}
 
 	if (criteria.created_at) {
-		query = query.where('created_at', '=', criteria.created_at);
+		query = query.where("created_at", "=", criteria.created_at);
 	}
 
 	return await query.selectAll().execute();
-}
+};
+
+export const findWithParticipants = async (criteria: Partial<Datawalk>) => {
+	let query = db.selectFrom("datawalk").selectAll("datawalk");
+
+	if (criteria.id) {
+		query.where("datawalk.id", "=", criteria.id);
+	}
+
+	if (criteria.code) {
+		query.where("datawalk.code", "=", criteria.code);
+	}
+
+	return await query
+		.select((eb) => [
+			// participants
+			jsonArrayFrom(
+				eb
+					.selectFrom("participant")
+					.select([
+						"id",
+						"uuid",
+						"created_at",
+						"chat_id",
+						"username",
+						"first_name",
+						"last_name",
+						"organization",
+						"email"
+					])
+					.whereRef("participant.current_datawalk_id", "=", "datawalk.id")
+			).as("participants_current")
+		])
+		.select((eb) => [
+			// contributing participants
+			jsonArrayFrom(
+				eb
+					.selectFrom("participant")
+					.select([
+						"id",
+						"uuid",
+						"created_at",
+						"chat_id",
+						"username",
+						"first_name",
+						"last_name",
+						"organization",
+						"email"
+					])
+					.where((eb) =>
+						eb.exists(
+							eb
+								.selectFrom("trackpoint")
+								.select("participant.id")
+								.whereRef("trackpoint.participant_id", "=", "participant.id")
+								.whereRef("trackpoint.datawalk_id", "=", "datawalk.id")
+						)
+					)
+			).as("participants_contributing")
+		])
+		.executeTakeFirst();
+};
+
+export const findAllWithParticipants = async () => {
+	return await db
+		.selectFrom("datawalk")
+		.selectAll("datawalk")
+		.select((eb) => [
+			// participants
+			jsonArrayFrom(
+				eb
+					.selectFrom("participant")
+					.select([
+						"id",
+						"uuid",
+						"created_at",
+						"chat_id",
+						"username",
+						"first_name",
+						"last_name",
+						"organization",
+						"email"
+					])
+					.whereRef("participant.current_datawalk_id", "=", "datawalk.id")
+			).as("participants_current")
+		])
+		.select((eb) => [
+			// contributing participants
+			jsonArrayFrom(
+				eb
+					.selectFrom("participant")
+					.select([
+						"id",
+						"uuid",
+						"created_at",
+						"chat_id",
+						"username",
+						"first_name",
+						"last_name",
+						"organization",
+						"email"
+					])
+					.where((eb) =>
+						eb.exists(
+							eb
+								.selectFrom("trackpoint")
+								.select("participant.id")
+								.whereRef("trackpoint.participant_id", "=", "participant.id")
+								.whereRef("trackpoint.datawalk_id", "=", "datawalk.id")
+						)
+					)
+			).as("participants_contributing")
+		])
+		.execute();
+};
 
 export const findAll = async () => {
 	return find({});
-}
+};
 
 export const update = async (id: number, updateWith: DatawalkUpdate) => {
-	await db.updateTable('datawalk').set(updateWith).where('id', '=', id).execute();
+	await db.updateTable("datawalk").set(updateWith).where("id", "=", id).execute();
 	const datawalk = await findById(id);
 	return datawalk;
-}
+};
 
 export const create = async (datawalk: NewDatawalk) => {
 	if (!datawalk.uuid || !validate_uuid(datawalk.uuid)) {
@@ -63,27 +182,27 @@ export const create = async (datawalk: NewDatawalk) => {
 		datawalk.code = generateDatawalkCode(4);
 	}
 
-	return await db.insertInto('datawalk').values(datawalk).returningAll().executeTakeFirst();
-}
+	return await db.insertInto("datawalk").values(datawalk).returningAll().executeTakeFirst();
+};
 
 export const remove = async (id: number) => {
-	return await db.deleteFrom('datawalk').where('id', '=', id).returningAll().executeTakeFirst();
-}
+	return await db.deleteFrom("datawalk").where("id", "=", id).returningAll().executeTakeFirst();
+};
 
 export const removeByUuid = async (uuid: string) => {
-	return await db.deleteFrom('datawalk').where('uuid', '=', uuid).returningAll().executeTakeFirst();
-}
+	return await db.deleteFrom("datawalk").where("uuid", "=", uuid).returningAll().executeTakeFirst();
+};
 
 export const removeAll = async () => {
-	return await db.deleteFrom('datawalk').execute();
-}
+	return await db.deleteFrom("datawalk").execute();
+};
 
-const CODE_CHARACTERS ='ABCDEFGHIJKLMNPQRSTUVWXYZ';
+const CODE_CHARACTERS = "ABCDEFGHIJKLMNPQRSTUVWXYZ";
 
-const generateDatawalkCode = (length : number) => {
-    let result = "";
-    for ( let i = 0; i < length; i++ ) {
-        result += CODE_CHARACTERS.charAt(Math.floor(Math.random() * CODE_CHARACTERS.length));
-    }
-    return result;
-}
+const generateDatawalkCode = (length: number) => {
+	let result = "";
+	for (let i = 0; i < length; i++) {
+		result += CODE_CHARACTERS.charAt(Math.floor(Math.random() * CODE_CHARACTERS.length));
+	}
+	return result;
+};

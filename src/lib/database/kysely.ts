@@ -1,42 +1,26 @@
-import {
-	Kysely,
-	Migrator,
-	SqliteAdapter,
-	SqliteDialect,
-	SqliteIntrospector,
-	SqliteQueryCompiler,
-	DummyDriver,
-	type LogConfig
-} from 'kysely';
-import SQLite from 'better-sqlite3';
-import { SerializeJSONPlugin } from './serialize-json-plugin';
-import { browser } from '$app/environment';
-import { StaticMigrationProvider } from './migration-provider';
-import type { Database } from './types';
-
-const dummyDialect = {
-	createAdapter: () => new SqliteAdapter(),
-	createDriver: () => new DummyDriver(),
-	createIntrospector: (db: Kysely<any>) => new SqliteIntrospector(db),
-	createQueryCompiler: () => new SqliteQueryCompiler()
-};
+import { Kysely, Migrator, SqliteDialect, type LogConfig } from "kysely";
+import SQLite from "better-sqlite3";
+import { SerializeJSONPlugin } from "./serialize-json-plugin";
+import { browser } from "$app/environment";
+import { StaticMigrationProvider } from "./migration-provider";
+import type { Database } from "./types";
 
 const sqliteInMemoryDialect: SqliteDialect = new SqliteDialect({
 	async database() {
-		console.log('Initializing SQLite Dialect (better-sqlite3)');
-		return new SQLite(':memory:');
+		console.log("Initializing SQLite Dialect (better-sqlite3)");
+		return new SQLite(":memory:");
 	}
 });
 
 const sqliteDialect: SqliteDialect = new SqliteDialect({
 	async database() {
-		console.log('Initializing SQLite Dialect (better-sqlite3)');
-		return new SQLite('Datawalk.db');
+		console.log("Initializing SQLite Dialect (better-sqlite3)");
+		return new SQLite("Datawalk.db");
 	}
 });
 
 const isVitest = () => {
-	return process && process.env.TEST === 'true';
+	return process && process.env.TEST === "true";
 };
 
 const configureDialect = () => {
@@ -53,7 +37,7 @@ const configureDialect = () => {
 const configureLog = (): LogConfig => {
 	// Mobile platforms and browser
 	if (browser || isVitest()) {
-		return ['query', 'error'];
+		return ["query", "error"];
 	}
 
 	// Vite server or Vite build
@@ -75,19 +59,19 @@ const migrateToLatest = async () => {
 	const { error, results } = await migrator.migrateToLatest();
 
 	results?.forEach((it) => {
-		if (it.status === 'Success') {
+		if (it.status === "Success") {
 			console.log(`migration "${it.migrationName}" was executed successfully`);
-		} else if (it.status === 'Error') {
+		} else if (it.status === "Error") {
 			console.error(`failed to execute migration "${it.migrationName}"`);
 		}
 	});
 
 	if (error) {
-		console.error('failed to migrate', error);
+		console.error("failed to migrate", error);
 	}
 
-	// const tables = await db.introspection.getTables();
-	// console.log('Schema after migration:', tables);
+	const tables = await db.introspection.getTables();
+	console.log("Schema after migration:", tables);
 
 	return db;
 };

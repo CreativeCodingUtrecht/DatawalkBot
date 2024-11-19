@@ -1,3 +1,3 @@
-import db from './kysely'
+import db from "./kysely";
 
 export default db;

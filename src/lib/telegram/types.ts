@@ -1,3 +1,5 @@
+import type { Location } from "node-telegram-bot-api";
+
 export interface UpdatedLocation extends Location {
 	horizontal_accuracy?: number | undefined;
 	heading?: number | undefined;
