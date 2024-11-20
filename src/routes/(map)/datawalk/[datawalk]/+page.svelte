@@ -7,7 +7,7 @@
 
 	import mapboxgl from "mapbox-gl";
 	import "mapbox-gl/dist/mapbox-gl.css";
-	import type { Map } from "mapbox-gl";
+	import type { Map, LngLatBounds } from "mapbox-gl";
 
 	// https://vite.dev/guide/env-and-mode
 	const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
@@ -33,12 +33,15 @@
 	// Default to CCU as center of the map
 	let latitude = 52.1046924;
 	let longitude = 5.0862398;
-
+	let bbox : LngLatBounds;
+	
 	if (coordinatesAll.length > 0) {
 		const center = turf.center(turf.points(coordinatesAll));
 		console.log("Center:", center.geometry.coordinates);
 		latitude = center.geometry.coordinates[1];
 		longitude = center.geometry.coordinates[0];
+
+		bbox = turf.bbox(turf.points(coordinatesAll));
 	}
 
 	let map: Map;
@@ -48,7 +51,7 @@
 		zoom: 18,
 		latitude: latitude,
 		longitude: longitude,
-		pitch: 60,
+		pitch: 45,
 		bearing: 0
 	};
 
@@ -73,6 +76,13 @@
 					'<a href="https://creativecodingutrecht.nl" target="_new">Creative Coding Utrecht</a>'
 			})
 		);
+
+		if (bbox) {
+			map.fitBounds(bbox, {
+				padding: viewState.pitch
+			});
+			map.setPitch(45);
+		}
 
 		map.on("load", () => {
 			for (const participant of datawalk.participants_contributing) {
@@ -132,7 +142,7 @@
 					for (const datapoint of trackpoint.datapoints) {
 						const popup = new mapboxgl.Popup({ offset: 25 })
 							.setHTML(
-								`${datapoint.created_at}<br/><b>${participant.first_name}</b> shared a <a href="/media/${datapoint.uuid}" target="_new">${datapoint.media_type}</a><br /><br />${datapoint.media_type == "photo" ? `<img width=200 src="/media/${datapoint.uuid}"><br />` : ""}${datapoint.caption ? `<b>${datapoint.caption}</b><br />` : ""}`
+								`${datapoint.created_at}<br/><b>${participant.first_name}</b> shared thisl <a href="/media/${datapoint.uuid}" target="_new">${datapoint.media_type}</a><br /><br />${datapoint.media_type == "photo" ? `<img width=200 src="/media/${datapoint.uuid}"><br />` : ""}${datapoint.caption ? `<b>${datapoint.caption}</b><br />` : ""}`
 							)
 							.setMaxWidth("400px");
 
@@ -146,6 +156,7 @@
 							el.style.width = `40px`;
 							el.style.height = `40px`;
 							el.style.backgroundSize = "100%";
+							el.style.border = `2px solid ${color}`;
 
 							marker = new mapboxgl.Marker(el);
 						}
@@ -164,7 +175,7 @@
 <div id="map"></div>
 <div id="info">
 	<img src="/images/pigeon.webp" width="60" alt="Pigeon" />
-	Future Frictions &gt; Datawalk
+	Future Frictions &gt; {datawalk.name}
 </div>
 
 <style>
@@ -181,7 +192,7 @@
 	:global(.imagemarker) {
 		display: block;
 		border: none;
-		border-radius: 50%;
+		border-radius: 50%;		
 		cursor: pointer;
 		padding: 0;
 	}
