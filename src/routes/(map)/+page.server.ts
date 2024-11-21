@@ -8,7 +8,6 @@ export const load: PageServerLoad = async () => {
     
     for (let datawalk of datawalks) {
         const participants = await ParticipantRepository.find({ current_datawalk_id: datawalk.id });
-        console.log("Participants:", participants);        
         datawalk.participants_current = participants;
         console.log("Participants: current", datawalk.participants_current);        
     }

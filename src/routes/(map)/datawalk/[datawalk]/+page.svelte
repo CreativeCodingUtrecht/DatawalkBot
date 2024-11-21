@@ -18,7 +18,8 @@
 	export let data: PageData;
 	const { datawalk } = data;
 
-	console.log("Datawalk:", datawalk);
+	// console.log("Datawalk:", datawalk);
+	// console.log("Participating: ", datawalk.participants_contributing);
 
 	const coordinatesAll: any = [];
 
@@ -85,8 +86,13 @@
 		}
 
 		map.on("load", () => {
-			for (const participant of datawalk.participants_contributing) {
+			for (let participant of datawalk.participants_contributing) {
 				const color = css(colorFromRange("neutral"));
+
+				const coordinates = participant.trackpoints.map((trackpoint: TrackPoint) => {
+					return [trackpoint.longitude, trackpoint.latitude];
+				});
+
 				// Show trackpoints
 				map.addSource(`trackpoints-${participant.uuid}`, {
 					type: "geojson",
@@ -95,7 +101,7 @@
 						properties: {},
 						geometry: {
 							type: "LineString",
-							coordinates: coordinatesAll
+							coordinates: coordinates
 						}
 					}
 				});

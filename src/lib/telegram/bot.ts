@@ -21,13 +21,24 @@ const isPrivateMessage = (msg: Message) => msg.chat.type === "private";
 const isGroupMessage = (msg: Message) =>
 	msg.chat.type === "group" || msg.chat.type === "supergroup";
 
+bot.onText(/\/start/, async (msg: Message) => {
+	if (isPrivateMessage(msg)) {
+		await handleStart(msg);
+	} else {
+		await bot.sendMessage(
+			msg.chat.id,
+			"Sorry, you can only create a new Datawalk in a private chat."
+		);
+	}
+});
+
 bot.onText(/\/create/, async (msg: Message) => {
 	if (isPrivateMessage(msg)) {
 		await handleCreate(msg);
 	} else {
 		await bot.sendMessage(
 			msg.chat.id,
-			"Sorry, you can only create a new datawalk in a private chat."
+			"Sorry, you can only create a new Datawalk in a private chat."
 		);
 	}
 });
@@ -38,7 +49,18 @@ bot.onText(/\/join/, async (msg: Message) => {
 	} else {
 		await bot.sendMessage(
 			msg.chat.id,
-			"Sorry, you can only join an existing datawalk in a private chat."
+			"Sorry, you can only join an existing Datawalk in a private chat."
+		);
+	}
+});
+
+bot.onText(/\/name/, async (msg: Message) => {
+	if (isPrivateMessage(msg)) {
+		await handleName(msg);
+	} else {
+		await bot.sendMessage(
+			msg.chat.id,
+			"Sorry, you can only change the name of an existing Datawalk in a private chat."
 		);
 	}
 });
@@ -49,7 +71,7 @@ bot.onText(/\/list/, async (msg: Message) => {
 	} else {
 		await bot.sendMessage(
 			msg.chat.id,
-			"Sorry, you can only retrieve active datawalks in a private chat."
+			"Sorry, you can only retrieve active Datawalks in a private chat."
 		);
 	}
 });
@@ -69,13 +91,42 @@ bot.onText(/\/leave/, async (msg: Message) => {
 	if (isPrivateMessage(msg)) {
 		await handleLeave(msg);
 	} else {
-		await bot.sendMessage(msg.chat.id, "Sorry, you can only leave a datawalk in a private chat.");
+		await bot.sendMessage(msg.chat.id, "Sorry, you can only leave a Datawalk in a private chat.");
 	}
 });
 
+const handleStart = async (msg: Message) => {
+	const participant: Participant | undefined = await findOrCreateParticipant(msg);
+
+	if (!participant) {
+		await bot.sendMessage(
+			msg.chat.id,
+			`Sorry, I was not able to save your details for participation in Datawalks`,
+			{
+				parse_mode: "HTML"
+			}
+		);
+		return;
+	}
+
+	await bot.sendMessage(
+		msg.chat.id,
+		`Hi there, I'm Datawalk Bot 👋`,
+		{ parse_mode: "HTML" }
+	);
+
+	await bot.sendMessage(
+		msg.chat.id,
+		`I will help you collect data such as photos, videos, and audio during your Datawalk. Let me know when you want to create a new Datawalk using /create or join an existing Datawalk using /join!`,
+		{ parse_mode: "HTML" }
+	);
+
+	
+};
+
 const handleCreate = async (msg: Message) => {
 	const datawalk: Datawalk | undefined = await DatawalkRepository.create({
-		name: `Datawalkshop with ${msg.chat?.first_name}`,
+		name: `Datawalk with ${msg.chat?.first_name}`,
 		status: "active"
 	});
 
@@ -85,23 +136,23 @@ const handleCreate = async (msg: Message) => {
 
 		await bot.sendMessage(
 			msg.chat.id,
-			`Cool! I've created a new datawalk called <b>${datawalk?.name}</b> with code <b>${code}</b>`,
+			`Cool! I've created a new Datawalk called <b>${datawalk?.name}</b> with code <b>${code}</b>`,
 			{ parse_mode: "HTML" }
 		);
 		participate(msg, datawalk);
 	} else {
-		await bot.sendMessage(msg.chat.id, `Sorry, an error occured while creating the datawalk`, {
+		await bot.sendMessage(msg.chat.id, `Sorry, an error occured while creating the Datawalk`, {
 			parse_mode: "HTML"
 		});
 	}
 };
 
 const handleJoin = async (msg: Message) => {
-	const code = msg.text?.replace("/join", "").trim();
+	const code = msg.text?.replace("/join", "").trim().toUpperCase();
 	if (!code || code === "") {
 		await bot.sendMessage(
 			msg.chat.id,
-			`Please provide a code to join a datawalk such as <b>YGXH</b>`,
+			`Please provide me the 4-letter code of the Datawalk you want to join (e.g. <b>YGXH</b>). Use the /list command and I'll send you a list of active Datawalks.`,
 			{ parse_mode: "HTML" }
 		);
 		return;
@@ -114,7 +165,7 @@ const handleJoin = async (msg: Message) => {
 	} else {
 		await bot.sendMessage(
 			msg.chat.id,
-			`Sorry, I couldn't find a datawalk with code <b>${code}</b>`,
+			`Sorry, I couldn't find a Datawalk with code <b>${code}</b>`,
 			{ parse_mode: "HTML" }
 		);
 	}
@@ -128,13 +179,45 @@ const handleList = async (msg: Message) => {
 	if (codes.length > 0) {
 		await bot.sendMessage(
 			msg.chat.id,
-			`The following datawalks are active: <b>${codes.join(", ")}</b>`,
+			`The following Datawalks are currently active: <b>${codes.join(", ")}</b>`,
 			{ parse_mode: "HTML" }
 		);
 	} else {
-		await bot.sendMessage(msg.chat.id, `There are currently no active datawalks`, {
+		await bot.sendMessage(msg.chat.id, `There are currently no active Datawalks`, {
 			parse_mode: "HTML"
 		});
+	}
+};
+
+const handleName = async (msg: Message) => {
+	const name = msg.text?.replace("/name", "").trim();
+	if (!name || name === "") {
+		await bot.sendMessage(msg.chat.id, `Please provide me with a new name for the Datawalk`, {
+			parse_mode: "HTML"
+		});
+		return;
+	}
+
+	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
+
+	if (participant?.current_datawalk_id) {
+		const datawalk = await DatawalkRepository.findById(participant.current_datawalk_id);
+		datawalk.name = name;
+		await DatawalkRepository.update(datawalk.id, datawalk);
+
+		await bot.sendMessage(
+			msg.chat.id,
+			`Okay, I've renamed the Datawalk to <b>${datawalk?.name}</b>!`,
+			{ parse_mode: "HTML" }
+		);
+	} else {
+		await bot.sendMessage(
+			msg.chat.id,
+			`You are currently not participating in a Datawalk. Please join the Datawalk you want to give a new name!`,
+			{
+				parse_mode: "HTML"
+			}
+		);
 	}
 };
 
@@ -146,14 +229,14 @@ const handleStatus = async (msg: Message) => {
 		if (datawalk) {
 			await bot.sendMessage(
 				msg.chat.id,
-				`You are participating in datawalk with code <b>${datawalk.code}</b>`,
+				`You are participating in Datawalk with code <b>${datawalk.code}</b>`,
 				{ parse_mode: "HTML" }
 			);
 			return;
 		}
 	}
 
-	await bot.sendMessage(msg.chat.id, `You are currently not participating in a datawalk`, {
+	await bot.sendMessage(msg.chat.id, `You are currently not participating in a Datawalk`, {
 		parse_mode: "HTML"
 	});
 };
@@ -168,11 +251,11 @@ const handleLeave = async (msg: Message) => {
 		await ParticipantRepository.update(participant.id, participant);
 		await bot.sendMessage(
 			msg.chat.id,
-			`You are no longer participating in datawalk with code <b>${datawalk?.code}</b>`,
+			`You are no longer participating in Datawalk with code <b>${datawalk?.code}</b>`,
 			{ parse_mode: "HTML" }
 		);
 	} else {
-		await bot.sendMessage(msg.chat.id, `You are currently not participating in a datawalk`, {
+		await bot.sendMessage(msg.chat.id, `You are currently not participating in a Datawalk`, {
 			parse_mode: "HTML"
 		});
 	}
@@ -190,47 +273,8 @@ bot.on("video", async (msg: Message) => {
 
 bot.on("voice", async (msg: Message) => {
 	const file_id = msg.voice?.file_id;
-	storeDataPoint(msg, file_id, "audio");	
+	storeDataPoint(msg, file_id, "audio");
 });
-
-// bot.on("audio", async (msg: Message) => {
-// 	// TODO When is this sent?
-// });
-
-// bot.on("document", async (msg: Message) => {
-// 	await bot.sendMessage(msg.chat.id, "Thanks for your document!");
-
-// 	if (!msg.document) {
-// 		await bot.sendMessage(msg.chat.id, "Unable to read the document you've sent!");
-// 		return;
-// 	}
-
-// 	const file_id = msg.document.file_id;
-// 	const file_name = msg.document.file_name;
-// 	const file_size = msg.document.file_size;
-
-// 	if (!file_size || validateFileSize(file_size)) {
-// 		await bot.sendMessage(
-// 			msg.chat.id,
-// 			"File size is too large! Please send a file less than 20MB."
-// 		);
-// 		return;
-// 	}
-
-// 	if (file_id) {
-// 		const url = await bot.getFileLink(file_id);
-// 		await bot.sendMessage(msg.chat.id, `URL ${url}`);
-
-// 		const filename = await bot.downloadFile(file_id, "./");
-// 		await bot.sendMessage(msg.chat.id, `I saved it to ${filename}`);
-// 	}
-// });
-
-// const validateFileSize = (file_size: number): boolean => {
-// 	// check size of max 20MB
-// 	const maxFileSize = 20 * 1024 * 1024;
-// 	return file_size < maxFileSize;
-// };
 
 bot.on("location", async (msg: Message) => {
 	if (!msg.location) {
@@ -259,7 +303,7 @@ bot.on("location", async (msg: Message) => {
 			datawalk_id: datawalk.id
 		});
 		console.log("Added trackpoint:", trackpoint);
-	
+
 		if (locationQueue[msg.chat.id] && locationQueue[msg.chat.id].locationExpected) {
 			let datapoint = await DataPointRepository.findById(locationQueue[msg.chat.id].datapoint_id);
 
@@ -306,11 +350,10 @@ bot.on("edited_message", async (msg: Message) => {
 			// );
 			delete locationQueue[msg.chat.id];
 		}
-
 	}
 });
 
-const participate = async (msg: Message, datawalk: Datawalk) => {
+const findOrCreateParticipant = async (msg: Message) => {
 	let participant: Participant | undefined = await ParticipantRepository.findByChatId(msg.chat.id);
 
 	if (!participant) {
@@ -322,6 +365,23 @@ const participate = async (msg: Message, datawalk: Datawalk) => {
 		});
 	}
 
+	return participant;
+};
+
+const participate = async (msg: Message, datawalk: Datawalk) => {
+	const participant: Participant | undefined = await findOrCreateParticipant(msg);
+
+	if (!participant) {
+		await bot.sendMessage(
+			msg.chat.id,
+			`Sorry, I was not able to save your participation to the requested Datawalk`,
+			{
+				parse_mode: "HTML"
+			}
+		);
+		return;
+	}
+
 	participant.current_datawalk_id = datawalk.id;
 	await ParticipantRepository.update(participant.id, participant);
 
@@ -329,16 +389,20 @@ const participate = async (msg: Message, datawalk: Datawalk) => {
 
 	await bot.sendMessage(
 		msg.chat.id,
-		`Welcome to datawalk <b>${datawalk.name}</b> with code <b>${datawalk.code}</b>! Please start sharing your live location when you start your datawalk. You may turn of location sharing as soon as the datawalk is over.`,
+		`Welcome to Datawalk <b>${datawalk.name}</b> with code <b>${datawalk.code}</b>! Please start sharing your live location when you start your Datawalk. You may turn of location sharing as soon as the Datawalk is over.`,
 		{ parse_mode: "HTML" }
 	);
 };
 
-const storeDataPoint = async (msg: Message, file_id : string, media_type : string) => {
+const storeDataPoint = async (msg: Message, file_id: string, media_type: string) => {
 	if (!file_id) {
-		await bot.sendMessage(msg.chat.id, `Sorry, I was not able to store the ${media_type} you sent.`, {
-			parse_mode: "HTML"
-		});
+		await bot.sendMessage(
+			msg.chat.id,
+			`Sorry, I was not able to store the ${media_type} you sent.`,
+			{
+				parse_mode: "HTML"
+			}
+		);
 
 		return;
 	}
@@ -346,27 +410,35 @@ const storeDataPoint = async (msg: Message, file_id : string, media_type : strin
 	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
 
 	if (!participant || !participant.current_datawalk_id) {
-		await bot.sendMessage(msg.chat.id, `Sorry, I was not able to store the ${media_type} you sent.`, {
-			parse_mode: "HTML"
-		});
+		await bot.sendMessage(
+			msg.chat.id,
+			`Sorry, I was not able to store the ${media_type} you sent.`,
+			{
+				parse_mode: "HTML"
+			}
+		);
 
 		return;
 	}
 
 	if (!file_id) {
-		await bot.sendMessage(msg.chat.id, `Sorry, I was not able to store the ${media_type} you sent.`, {
-			parse_mode: "HTML"
-		});
+		await bot.sendMessage(
+			msg.chat.id,
+			`Sorry, I was not able to store the ${media_type} you sent.`,
+			{
+				parse_mode: "HTML"
+			}
+		);
 
 		return;
 	}
 
 	const filename = await bot.downloadFile(file_id, "./");
 
-	const extension = filename.split('.').pop() || '';
-	const mime_type = mime.lookup(extension) || 'application/octet-stream';
+	const extension = filename.split(".").pop() || "";
+	const mime_type = mime.lookup(extension) || "application/octet-stream";
 
-	const datapoint : DataPoint | undefined = await DataPointRepository.create({
+	const datapoint: DataPoint | undefined = await DataPointRepository.create({
 		media_type: media_type,
 		caption: msg.caption,
 		filename: filename,
@@ -374,11 +446,67 @@ const storeDataPoint = async (msg: Message, file_id : string, media_type : strin
 		participant_id: participant?.id
 	});
 
-	bot.sendMessage(msg.chat.id, `Thanks! 👍✨`, { parse_mode: "HTML" });
+	let emoji;
+	switch (media_type) {
+		case "photo":
+			emoji = "📸";
+			break;
+		case "video":
+			emoji = "🎥";
+			break;
+		case "audio":
+			emoji = "🎙";
+			break;
+		default:
+			emoji = "📦";
+	}
+	bot.sendMessage(msg.chat.id, `Thanks for sharing! ${emoji}`, {
+		parse_mode: "HTML",
+		reply_to_message_id: msg.message_id
+	});
 
 	locationQueue[msg.chat.id] = {
-		datapoint_id: datapoint?.id, 
+		datapoint_id: datapoint?.id,
 		photoMessageId: msg.message_id,
 		locationExpected: true
-	};			
-}
+	};
+};
+
+// bot.on("audio", async (msg: Message) => {
+// 	// TODO When is this sent?
+// });
+
+// bot.on("document", async (msg: Message) => {
+// 	await bot.sendMessage(msg.chat.id, "Thanks for your document!");
+
+// 	if (!msg.document) {
+// 		await bot.sendMessage(msg.chat.id, "Unable to read the document you've sent!");
+// 		return;
+// 	}
+
+// 	const file_id = msg.document.file_id;
+// 	const file_name = msg.document.file_name;
+// 	const file_size = msg.document.file_size;
+
+// 	if (!file_size || validateFileSize(file_size)) {
+// 		await bot.sendMessage(
+// 			msg.chat.id,
+// 			"File size is too large! Please send a file less than 20MB."
+// 		);
+// 		return;
+// 	}
+
+// 	if (file_id) {
+// 		const url = await bot.getFileLink(file_id);
+// 		await bot.sendMessage(msg.chat.id, `URL ${url}`);
+
+// 		const filename = await bot.downloadFile(file_id, "./");
+// 		await bot.sendMessage(msg.chat.id, `I saved it to ${filename}`);
+// 	}
+// });
+
+// const validateFileSize = (file_size: number): boolean => {
+// 	// check size of max 20MB
+// 	const maxFileSize = 20 * 1024 * 1024;
+// 	return file_size < maxFileSize;
+// };

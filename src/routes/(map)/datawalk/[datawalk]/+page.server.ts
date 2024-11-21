@@ -12,7 +12,8 @@ export const load: PageServerLoad = async ({ params }) => {
 	if (datawalk) {
 		const participants = datawalk.participants_contributing;
 		for (let participant of participants) {
-			const trackpoints : any = await TrackPointRepository.find({datawalk_id: datawalk.id, participant_id: participants[0].id});
+			console.log("Fetching participant's data", participant);
+			const trackpoints : any = await TrackPointRepository.find({datawalk_id: datawalk.id, participant_id: participant.id});
 
 			for (let trackpoint of trackpoints) {
 				const datapoints = await DataPointRepository.find({trackpoint_id: trackpoint.id});

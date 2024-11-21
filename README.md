@@ -52,13 +52,16 @@ ngrok http --url=assuring-woodcock-seemingly.ngrok-free.app 5173
 
 ## Telegram Bot
 
-Make sure the following commands have been configured for the Walkshop Bot using `@BotFather` with the command `/setcommands`:
+Make sure the following commands have been configured for the Datawalk Bot using `@BotFather` with the command `/setcommands`:
 
 ```
-join - Join a Walkshop
-create - Create a new Walkshop
+start - Let's get to know me! 👋
+join - Join a Datawalk
+create - Create a new Datawalk
+status - Find out which Datawalk you're currently in
+leave - Leave the current Datawalk
+list - List all active Datawalks
 ```
-
 
 ## Implementation steps
 
