@@ -132,8 +132,8 @@ dist
 # Output
 .output
 .vercel
-/.svelte-kit
-/build
+/app/.svelte-kit
+/app/build
 
 # OS
 .DS_Store
