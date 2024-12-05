@@ -1,0 +1,15 @@
+{
+	"/(map)": [
+		"src/routes/(map)/+page.server.ts"
+	],
+	"/": [],
+	"/(map)/datawalk/[datawalk]": [
+		"src/routes/(map)/datawalk/[datawalk]/+page.server.ts"
+	],
+	"/(api)/media/[uuid]": [
+		"src/routes/(api)/media/[uuid]/+server.ts"
+	],
+	"/(api)/webhook": [
+		"src/routes/(api)/webhook/+server.ts"
+	]
+}
