@@ -17,6 +17,11 @@ if (!BOT_TOKEN) {
 export const bot = new TelegramBot(BOT_TOKEN);
 const locationQueue: any = {};
 
+const DATA_MEDIA_ROOT = env.DATA_MEDIA_ROOT;
+if (!DATA_MEDIA_ROOT) {
+	throw new Error("DATA_MEDIA_ROOT is not set");
+}
+
 const isPrivateMessage = (msg: Message) => msg.chat.type === "private";
 const isGroupMessage = (msg: Message) =>
 	msg.chat.type === "group" || msg.chat.type === "supergroup";
@@ -433,9 +438,11 @@ const storeDataPoint = async (msg: Message, file_id: string, media_type: string)
 		return;
 	}
 
-	const filename = await bot.downloadFile(file_id, "./");
-
+	// Download media
+	const download_path = await bot.downloadFile(file_id, DATA_MEDIA_ROOT);
+	const filename = download_path.split("/").pop();	
 	const extension = filename.split(".").pop() || "";
+
 	const mime_type = mime.lookup(extension) || "application/octet-stream";
 
 	const datapoint: DataPoint | undefined = await DataPointRepository.create({

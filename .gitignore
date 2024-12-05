@@ -132,7 +132,7 @@ dist
 # Output
 .output
 .vercel
-/app/.svelte-kit
+.svelte-kit
 /app/build
 
 # OS
