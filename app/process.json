@@ -1,0 +1,15 @@
+{
+	"apps": [
+		{
+			"name": "datawalk",
+			"script": "build/index.js",
+			"exec_interpreter": "/home/niels/.nvm/versions/node/v20.14.0/bin/node",
+			"watch": false,
+			"env": {
+				"PORT": 3002,
+				"ORIGIN": "https://datawalk.creativecodingutrecht.nl",
+				"BODY_SIZE_LIMIT": "Infinity"
+			}
+		}
+	]
+}
