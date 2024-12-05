@@ -4,6 +4,12 @@ import { SerializeJSONPlugin } from "./serialize-json-plugin";
 import { browser } from "$app/environment";
 import { StaticMigrationProvider } from "./migration-provider";
 import type { Database } from "./types";
+import { env } from "$env/dynamic/private";
+
+const SQLITE_DATABASE_FILE = env.SQLITE_DATABASE_FILE;
+if (!SQLITE_DATABASE_FILE) {
+	throw new Error("SQLITE_DATABASE_FILE is not set");
+}
 
 const sqliteInMemoryDialect: SqliteDialect = new SqliteDialect({
 	async database() {
@@ -15,7 +21,7 @@ const sqliteInMemoryDialect: SqliteDialect = new SqliteDialect({
 const sqliteDialect: SqliteDialect = new SqliteDialect({
 	async database() {
 		console.log("Initializing SQLite Dialect (better-sqlite3)");
-		return new SQLite("Datawalk.db");
+		return new SQLite(SQLITE_DATABASE_FILE);
 	}
 });
 
