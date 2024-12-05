@@ -100,6 +100,14 @@ bot.onText(/\/leave/, async (msg: Message) => {
 	}
 });
 
+bot.onText(/\/archive/, async (msg: Message) => {
+	if (isPrivateMessage(msg)) {
+		await handleArchive(msg);
+	} else {
+		await bot.sendMessage(msg.chat.id, "Sorry, you can only archive and unarchive a Datawalk in a private chat.");
+	}
+});
+
 const handleStart = async (msg: Message) => {
 	const participant: Participant | undefined = await findOrCreateParticipant(msg);
 
@@ -265,6 +273,38 @@ const handleLeave = async (msg: Message) => {
 		});
 	}
 };
+
+const handleArchive = async (msg: Message) => {
+	const code = msg.text?.replace("/archive", "").trim().toUpperCase();
+	if (!code || code === "") {
+		await bot.sendMessage(
+			msg.chat.id,
+			`Please provide me the 4-letter code of the Datawalk you want to archive or unarchive (e.g. <b>YGXH</b>). Use the /list command and I'll send you a list of active Datawalks.`,
+			{ parse_mode: "HTML" }
+		);
+		return;
+	}
+
+	const datawalk = await DatawalkRepository.findByCode(code);
+
+	if (datawalk) {
+		datawalk.status = datawalk.status === "active" ? "archived" : "active";
+		await DatawalkRepository.update(datawalk.id, datawalk);
+
+		await bot.sendMessage(
+			msg.chat.id,
+			`Datawalk <b>${datawalk.name}</b> with code <b>${datawalk.code}</b> is now <b>${datawalk.status}</b>!`,
+			{ parse_mode: "HTML" }
+		);
+	} else {
+		await bot.sendMessage(
+			msg.chat.id,
+			`Sorry, I couldn't find a Datawalk with code <b>${code}</b>`,
+			{ parse_mode: "HTML" }
+		);
+	}
+};
+
 
 bot.on("photo", async (msg: Message) => {
 	const file_id = msg.photo?.[msg.photo.length - 1].file_id;
