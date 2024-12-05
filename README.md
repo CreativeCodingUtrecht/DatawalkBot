@@ -1,9 +1,22 @@
 # DatawalkBot
-Telegram bot-based data collection tool designed for workshop participants engaging in a datawalk
+Telegram bot-based data collection tool designed for workshop participants engaging in a datawalk.
 
-## Developing
+## Telegram Bot
 
-Install dependencies with `yarn` (or `npm install` or `pnpm install`), start a development server:
+Create your own Datawalk Bot using `@BotFather`. Make sure the following commands have been configured for the Datawalk Bot using `@BotFather` with the command `/setcommands`:
+
+```
+start - Let's get to know me! 👋
+join - Join a Datawalk
+create - Create a new Datawalk
+status - Find out which Datawalk you're currently in
+leave - Leave the current Datawalk
+list - List all active Datawalks
+```
+
+## Datawalk Application
+
+Install dependencies with `yarn` (or `npm install` or `pnpm install`) in the `app` folder, start a development server:
 
 ```bash
 yarn run dev
@@ -26,7 +39,7 @@ You can preview the production build with `yarn run preview`.
 
 Get a free account on ngrok for testing. Claim your free static domain (e.g. `assuring-woodcock-seemingly.ngrok-free.app`).
 
-Then, set this static domain as the Webhook URL in the Telegram Bot. 
+Then, set this static domain as the Webhook URL in the Telegram Bot (replace `$(BOT_TOKEN)` with your own Telegram BOT API token). 
 
 ```
 curl -X POST https://api.telegram.org/bot$(BOT_TOKEN)/setWebhook \
@@ -50,22 +63,7 @@ ngrok http --url=assuring-woodcock-seemingly.ngrok-free.app 5173
 
 ```
 
-## Telegram Bot
-
-Make sure the following commands have been configured for the Datawalk Bot using `@BotFather` with the command `/setcommands`:
-
-```
-start - Let's get to know me! 👋
-join - Join a Datawalk
-create - Create a new Datawalk
-status - Find out which Datawalk you're currently in
-leave - Leave the current Datawalk
-list - List all active Datawalks
-```
-
-## Implementation steps
-
-### Datawalk Bot
+### Datawalk Bot webhook handling
 Participants of Datawalkshop use their Telegram app to communicate with the Datawalk Bot. Via the Bot, they can join a workshop and contribute data points.
 
 Connection with Telegram
@@ -75,32 +73,35 @@ Connection with Telegram
 
 Command handling (see `bot.ts`)
 *   Commands
-    *   `/create`
-    *   `/join` 
-    *   `/status`
-    *   `/leave`
-    *   `/list`
+    *   `/create` - Create a new Datawalk
+    *   `/join [code]` - Join an existing Datawalk with `code`
+    *   `/status` - Get information the Datawalk you're currently participating in
+    *   `/leave` - Leave the Datawalk you're currently participating in
+    *   `/list` - List all available Datawalks
+    *   `/archive [code]` - Archive/unarchive a Datawalk with `code`
+    *   `/name` - Rename the Datawalk you're currently participating in
 *   Media
     * Photo
         * Save to filesystem (JPEG) [DONE]
     * Video 
         * Save to filesystem (MP4/MOV) [DONE]
-    * Voice message
+    * Audio and Voice message
         * Saved to filesystem (MP3, voice recordings as OGA, Ogg Vorbis Audio File [DONE]
 * Location
     * Location [DONE]
-    * Live location [DONE]
-
-Data
-*   Save to filesystem 
-*   Save to database
+    * Live location [DONE] -- enable live location sharing for automatic geotagging of uploaded media
 
 ### Datawalk Map
 To see the routes and results of a Datawalkshop, participants can reflect on the Datawalk Map. This web-based tool shows the collected data. 
 
 Datawalk visualisation
-*   Map -- https://dev.to/samuelearl/building-a-geospacial-app-with-sveltekit-deckgl-and-mapbox-part-1-start-with-a-map-59lh
+*   Map [DONE]
 
-### Ideas
+### Known issues
 
-*   Sharing collected items in Telegram Group (requires attaching Datawalk Bot to this channel)
+High prio issues:
+*   Ask participant the Datawalk to join when they only typed the command `/join` instead of `/join [code]`
+*   Geotag multiple media files at once - currently only the last available media file is geotagged when a GPS location is received by the app.
+*   Save video messages (option available under the voice message icon) - currently these videos are not recognized and stored
+
+CCU Playtest notes (2024-11-21) can be found [here](https://www.notion.so/creativecodingutrecht/Datawalk-Bot-Playtest-19c57c3a94b946e29e81740f86280c51?pvs=4) (document is not public).
