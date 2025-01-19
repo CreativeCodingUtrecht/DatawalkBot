@@ -176,7 +176,7 @@
 							el.style.backgroundSize = "100%";
 							el.style.border = `2px solid ${color}`;
 
-							marker = new maplibregl.Marker(el);
+							marker = new maplibregl.Marker({element: el});
 						}
 
 						marker
@@ -215,7 +215,7 @@
 		padding: 0;
 	}
 
-	:global(.mapboxgl-popup) {
+	:global(.maplibregl-popup) {
 		font-family: "Quicksand", sans-serif;
 	}
 
