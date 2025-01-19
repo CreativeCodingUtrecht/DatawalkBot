@@ -5,15 +5,9 @@
 	import type { TrackPoint } from "$lib/database/types";
 	import { colorFromRange, css } from "@thi.ng/color";
 
-	import mapboxgl from "mapbox-gl";
-	import "mapbox-gl/dist/mapbox-gl.css";
-	import type { Map, LngLatBounds } from "mapbox-gl";
-
-	// https://vite.dev/guide/env-and-mode
-	const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-	if (!MAPBOX_TOKEN) {
-		throw new Error("MAPBOX_TOKEN is not set");
-	}
+	import maplibregl from "maplibre-gl";
+	import "maplibre-gl/dist/maplibre-gl.css";
+	import type { Map, LngLatBounds, StyleSpecification } from "maplibre-gl";
 
 	export let data: PageData;
 	const { datawalk } = data;
@@ -46,22 +40,40 @@
 	}
 
 	let map: Map;
-	let accessToken = MAPBOX_TOKEN;
-	let mapStyle = "mapbox://styles/mapbox/light-v9";
+
+	const style : StyleSpecification = {
+		version: 8,
+		sources: {
+			osm: {
+				type: "raster",
+				tiles: ["https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"],
+				tileSize: 256,
+				attribution: "&copy; <a href='https://creativecodingutrecht.nl' target='_new'>Creative Coding Utrecht</a>",
+				maxzoom: 19
+			}
+		},
+		layers: [
+			{
+				id: "osm",
+				type: "raster",
+				source: "osm" // This must match the source key above
+			}
+		]
+	};
+
 	let viewState = {
-		zoom: 18,
+		zoom: 17.5,
 		latitude: latitude,
 		longitude: longitude,
-		pitch: 45,
+		pitch: 30,
 		bearing: 0
 	};
 
 	onMount(() => {
-		map = new mapboxgl.Map({
-			accessToken: accessToken,
+		map = new maplibregl.Map({
 			container: "map",
 			interactive: true,
-			style: mapStyle,
+			style: style,
 			center: [viewState.longitude, viewState.latitude],
 			zoom: viewState.zoom,
 			pitch: viewState.pitch,
@@ -69,12 +81,12 @@
 			attributionControl: false
 		});
 
-		map.addControl(new mapboxgl.FullscreenControl());
-		map.addControl(new mapboxgl.NavigationControl());
+		map.addControl(new maplibregl.FullscreenControl());
+		map.addControl(new maplibregl.NavigationControl());
 		map.addControl(
-			new mapboxgl.AttributionControl({
+			new maplibregl.AttributionControl({
 				customAttribution:
-					'<a href="https://creativecodingutrecht.nl" target="_new">Creative Coding Utrecht</a>'
+					'Datawalk Bot'
 			})
 		);
 
@@ -124,7 +136,7 @@
 				});
 
 				// Create a popup, but don't add it to the map yet.
-				const popup = new mapboxgl.Popup({
+				const popup = new maplibregl.Popup({
 					closeButton: false,
 					closeOnClick: false
 				});
@@ -146,7 +158,7 @@
 
 				for (const trackpoint of participant.trackpoints) {
 					for (const datapoint of trackpoint.datapoints) {
-						const popup = new mapboxgl.Popup({ offset: 25 })
+						const popup = new maplibregl.Popup({ offset: 25 })
 							.setHTML(
 								`${datapoint.created_at}<br/><b>${participant.first_name}</b> shared thisl <a href="/media/${datapoint.uuid}" target="_new">${datapoint.media_type}</a><br /><br />${datapoint.media_type == "photo" ? `<img width=200 src="/media/${datapoint.uuid}"><br />` : ""}${datapoint.caption ? `<b>${datapoint.caption}</b><br />` : ""}`
 							)
@@ -154,7 +166,7 @@
 
 						let marker;
 						if (datapoint.media_type !== "photo") {
-							marker = new mapboxgl.Marker({ color });
+							marker = new maplibregl.Marker({ color });
 						} else {
 							const el = document.createElement("div");
 							el.className = "imagemarker";
@@ -164,7 +176,7 @@
 							el.style.backgroundSize = "100%";
 							el.style.border = `2px solid ${color}`;
 
-							marker = new mapboxgl.Marker(el);
+							marker = new maplibregl.Marker(el);
 						}
 
 						marker
