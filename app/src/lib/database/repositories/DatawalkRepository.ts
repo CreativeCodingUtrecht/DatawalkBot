@@ -2,12 +2,9 @@ import { v4 as uuidv4, validate as validate_uuid } from "uuid";
 import db from "$lib/database";
 import type { DatawalkUpdate, Datawalk, NewDatawalk } from "$lib/database/types";
 import { jsonArrayFrom, jsonObjectFrom } from "kysely/helpers/sqlite";
+import { sql } from 'kysely';
 
 export const findById = async (id: number) => {
-	return await db.selectFrom("datawalk").where("id", "=", id).selectAll().executeTakeFirst();
-};
-
-export const findWithDataById = async (id: number) => {
 	return await db.selectFrom("datawalk").where("id", "=", id).selectAll().executeTakeFirst();
 };
 
@@ -46,7 +43,7 @@ export const find = async (criteria: Partial<Datawalk>) => {
 		query = query.where("created_at", "=", criteria.created_at);
 	}
 
-	return await query.orderBy('created_at','desc').selectAll().execute();
+	return await query.orderBy("created_at", "desc").selectAll().execute();
 };
 
 export const findWithParticipantsByCode = async (code: string) => {
@@ -153,6 +150,44 @@ export const findAllWithParticipants = async () => {
 					)
 			).as("participants_contributing")
 		])
+		.execute();
+};
+
+export const findAllWithParticipantsAndContributors = async () => {
+	return await db
+		.selectFrom("datawalk")
+		.select((eb) => [
+			"datawalk.id",
+			"datawalk.code",
+			"datawalk.name",
+
+			// Current participants as a JSON array of objects using jsonArrayFrom
+			jsonArrayFrom(
+				eb
+					.selectFrom("participant")
+					.select([
+						"participant.id",
+						"participant.first_name",
+						"participant.last_name"
+					])
+					.whereRef("participant.current_datawalk_id", "=", "datawalk.id")
+			).as("currentParticipants"),
+
+			// Contributing participants as a JSON array of objects using jsonArrayFrom
+			jsonArrayFrom(
+				eb
+					.selectFrom("trackpoint")
+					.innerJoin("participant as contributor", "contributor.id", "trackpoint.participant_id")
+					.select([
+						"contributor.id",
+						"contributor.first_name",
+						"contributor.last_name",
+					])					
+					.whereRef("trackpoint.datawalk_id", "=", "datawalk.id")
+					.distinct()
+			).as("contributingParticipants")
+		])
+		.where("datawalk.status", "=", "active")
 		.execute();
 };
 

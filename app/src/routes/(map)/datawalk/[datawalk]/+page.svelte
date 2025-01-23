@@ -4,6 +4,7 @@
 	import * as turf from "@turf/turf";
 	import type { TrackPoint } from "$lib/database/types";
 	import { colorFromRange, css } from "@thi.ng/color";
+	import Header from "$lib/components/Header.svelte";
 
 	import maplibregl from "maplibre-gl";
 	import "maplibre-gl/dist/maplibre-gl.css";
@@ -11,9 +12,6 @@
 
 	export let data: PageData;
 	const { datawalk } = data;
-
-	// console.log("Datawalk:", datawalk);
-	// console.log("Participating: ", datawalk.participants_contributing);
 
 	const coordinatesAll: any = [];
 
@@ -56,7 +54,7 @@
 			{
 				id: "osm",
 				type: "raster",
-				source: "osm" // This must match the source key above
+				source: "osm" 
 			}
 		]
 	};
@@ -65,7 +63,7 @@
 		zoom: 17.5,
 		latitude: latitude,
 		longitude: longitude,
-		pitch: 30,
+		pitch: 0,
 		bearing: 0
 	};
 
@@ -191,10 +189,7 @@
 </script>
 
 <div id="map"></div>
-<div id="info">
-	<img src="/images/pigeon.webp" width="60" alt="Pigeon" />
-	Future Frictions &gt; {datawalk.name}
-</div>
+<Header absolute={true} title={datawalk.name} />
 
 <style>
 	#map {
@@ -218,16 +213,4 @@
 	:global(.maplibregl-popup) {
 		font-family: "Quicksand", sans-serif;
 	}
-
-	#info {
-		display: flex;
-		align-items: center;
-		position: absolute;
-		top: 20px;
-		left: 20px;
-		font-family: Uni, sans-serif;
-		text-transform: uppercase;
-		font-size: 1.25rem;
-	}
-
 </style>
