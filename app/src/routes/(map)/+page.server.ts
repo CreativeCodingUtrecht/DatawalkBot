@@ -9,10 +9,15 @@ export const load: PageServerLoad = async () => {
     for (let datawalk of datawalks) {
         const participants = await ParticipantRepository.find({ current_datawalk_id: datawalk.id});
         datawalk.participants_current = participants;
-        console.log("Participants: current", datawalk.participants_current);        
+        // console.log("Participants: current", datawalk.participants_current);        
     }
 
+    // test
+    let aggregration : any = await DatawalkRepository.findAllWithParticipantsAndContributors();
+    console.log("Test", aggregration);
+
     return {
-        datawalks : datawalks
+        datawalks : datawalks,
+        aggregration : aggregration
     };
 };
