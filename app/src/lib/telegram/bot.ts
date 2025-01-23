@@ -108,6 +108,44 @@ bot.onText(/\/archive/, async (msg: Message) => {
 	}
 });
 
+bot.on("text", async (msg: Message) => {
+	if (isPrivateMessage(msg)) {
+		await handleText(msg);
+	} 	
+});
+
+const handleText = async (msg: Message) => {
+	console.log("Handling text message")
+	const participant: Participant | undefined = await findOrCreateParticipant(msg);
+	if (!participant) {
+		console.error("Unable to find participant data")
+		return;		
+	}	
+	
+	if (!participant.current_datawalk_id) {
+		// Try using the received message as a code to join a datawalk 
+		const code = msg.text?.trim().toUpperCase();
+
+		const datawalk = await DatawalkRepository.findByCode(code);
+
+		if (datawalk) {
+			participate(msg, datawalk);
+		} else {
+			await bot.sendMessage(
+				msg.chat.id,
+				`Sorry, I couldn't find a Datawalk with code <b>${code}</b>`,
+				{ parse_mode: "HTML" }
+			);
+		}
+	} else {
+		await bot.sendMessage(
+			msg.chat.id,
+			`Sorry, I don't know how to handle text messages yet`,
+			{ parse_mode: "HTML" }
+		);
+	}
+}
+
 const handleStart = async (msg: Message) => {
 	const participant: Participant | undefined = await findOrCreateParticipant(msg);
 
