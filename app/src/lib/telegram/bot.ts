@@ -357,6 +357,11 @@ bot.on("video", async (msg: Message) => {
 	storeDataPoint(msg, file_id, "video");
 });
 
+bot.on("video_note", async (msg: Message) => {
+	const file_id = msg.video_note?.file_id;
+	storeDataPoint(msg, file_id, "video");
+});
+
 bot.on("voice", async (msg: Message) => {
 	const file_id = msg.voice?.file_id;
 	storeDataPoint(msg, file_id, "audio");
