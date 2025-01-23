@@ -114,8 +114,14 @@ bot.on("text", async (msg: Message) => {
 	} 	
 });
 
-const handleText = async (msg: Message) => {
+const handleText = async (msg: Message) => {	
+	if (msg.text?.startsWith("/")) {
+		// This is a command, ignore it
+		return;
+	}
+
 	console.log("Handling text message")
+
 	const participant: Participant | undefined = await findOrCreateParticipant(msg);
 	if (!participant) {
 		console.error("Unable to find participant data")
@@ -138,11 +144,8 @@ const handleText = async (msg: Message) => {
 			);
 		}
 	} else {
-		await bot.sendMessage(
-			msg.chat.id,
-			`Sorry, I don't know how to handle text messages yet`,
-			{ parse_mode: "HTML" }
-		);
+		// Try to store the text message as a data point
+		storeTextOnlyDataPoint(msg);		
 	}
 }
 
@@ -476,6 +479,39 @@ const participate = async (msg: Message, datawalk: Datawalk) => {
 		{ parse_mode: "HTML" }
 	);
 };
+
+const storeTextOnlyDataPoint = async (msg: Message) => {
+	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
+
+	if (!participant || !participant.current_datawalk_id) {
+		await bot.sendMessage(
+			msg.chat.id,
+			`Sorry, I was not able to store the text you sent.`,
+			{
+				parse_mode: "HTML"
+			}
+		);
+
+		return;
+	}
+
+	const datapoint: DataPoint | undefined = await DataPointRepository.create({
+		media_type: "text",
+		caption: msg.text,
+		participant_id: participant?.id
+	});
+
+	bot.sendMessage(msg.chat.id, `Thanks for sharing your thought! 💬`, {
+		parse_mode: "HTML",
+		reply_to_message_id: msg.message_id
+	});
+
+	locationQueue[msg.chat.id] = {
+		datapoint_id: datapoint?.id,
+		photoMessageId: msg.message_id,
+		locationExpected: true
+	};
+}
 
 const storeDataPoint = async (msg: Message, file_id: string, media_type: string) => {
 	if (!file_id) {

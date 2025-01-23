@@ -156,9 +156,16 @@
 
 				for (const trackpoint of participant.trackpoints) {
 					for (const datapoint of trackpoint.datapoints) {
+						let html;
+						if (datapoint.media_type === "text") {
+							html = `${datapoint.created_at}<br/><b>${participant.first_name}</b> shared a thought<br /><br /><b>${datapoint.caption}</b><br />`
+						} else {
+							html = `${datapoint.created_at}<br/><b>${participant.first_name}</b> shared a <a href="/media/${datapoint.uuid}" target="_new">${datapoint.media_type}</a><br /><br />${datapoint.media_type == "photo" ? `<img width=200 src="/media/${datapoint.uuid}"><br />` : ""}${datapoint.caption ? `<b>${datapoint.caption}</b><br />` : ""}`
+						} 
+
 						const popup = new maplibregl.Popup({ offset: 25 })
 							.setHTML(
-								`${datapoint.created_at}<br/><b>${participant.first_name}</b> shared thisl <a href="/media/${datapoint.uuid}" target="_new">${datapoint.media_type}</a><br /><br />${datapoint.media_type == "photo" ? `<img width=200 src="/media/${datapoint.uuid}"><br />` : ""}${datapoint.caption ? `<b>${datapoint.caption}</b><br />` : ""}`
+								html
 							)
 							.setMaxWidth("400px");
 
