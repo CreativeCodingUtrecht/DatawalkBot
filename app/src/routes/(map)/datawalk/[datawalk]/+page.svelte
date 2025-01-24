@@ -15,6 +15,8 @@
 
 	const coordinatesAll: any = [];
 
+	let showTrackpoints = true;
+
 	for (const participant of datawalk.participants_contributing) {
 		console.log("Participant:", participant);
 		const coordinates = participant.trackpoints.map((trackpoint: TrackPoint) => {
@@ -104,17 +106,19 @@
 				});
 
 				// Show trackpoints
-				map.addSource(`trackpoints-${participant.uuid}`, {
-					type: "geojson",
-					data: {
-						type: "Feature",
-						properties: {},
-						geometry: {
-							type: "LineString",
-							coordinates: coordinates
+				if (showTrackpoints) {
+					map.addSource(`trackpoints-${participant.uuid}`, {
+						type: "geojson",
+						data: {
+							type: "Feature",
+							properties: {},
+							geometry: {
+								type: "LineString",
+								coordinates: coordinates
+							}
 						}
-					}
-				});
+					});
+				}
 
 				const layerId = `layer-${participant.uuid}`;
 				map.addLayer({
@@ -186,7 +190,7 @@
 						}
 
 						marker
-							.setLngLat([trackpoint.longitude+(i*0.000002), trackpoint.latitude+(i*0.000002)])
+							.setLngLat([trackpoint.longitude+(i*0.000001), trackpoint.latitude+(i*0.0000001)])
 							.setPopup(popup)
 							.addTo(map);
 						
@@ -200,6 +204,9 @@
 
 <div id="map"></div>
 <Header absolute={true} title={datawalk.name} />
+<div class="card p-4">
+	Basic
+</div>
 
 <style>
 	#map {
