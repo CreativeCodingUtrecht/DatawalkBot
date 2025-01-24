@@ -5,6 +5,7 @@
 	import type { TrackPoint } from "$lib/database/types";
 	import { colorFromRange, css } from "@thi.ng/color";
 	import Header from "$lib/components/Header.svelte";
+	import { page } from '$app/stores';
 
 	import maplibregl from "maplibre-gl";
 	import "maplibre-gl/dist/maplibre-gl.css";
@@ -14,8 +15,6 @@
 	const { datawalk } = data;
 
 	const coordinatesAll: any = [];
-
-	let showTrackpoints = true;
 
 	for (const participant of datawalk.participants_contributing) {
 		console.log("Participant:", participant);
@@ -70,6 +69,11 @@
 	};
 
 	onMount(() => {
+		const url = $page.url;
+		const showParticipantFirstName = $page.url.searchParams.get('first_name');
+		const showParticipantUsername = $page.url.searchParams.get('username');
+		const showTrackpoints = $page.url.searchParams.get('hide') === "" ? false : true;
+
 		map = new maplibregl.Map({
 			container: "map",
 			interactive: true,
@@ -99,6 +103,14 @@
 
 		map.on("load", () => {
 			for (let participant of datawalk.participants_contributing) {
+				const layerId = `layer-${participant.uuid}`;
+
+				if (showParticipantFirstName && participant.first_name !== showParticipantFirstName) {
+					continue;
+				} else if (showParticipantUsername && participant.username !== showParticipantUsername) {
+					continue;
+				}
+
 				const color = css(colorFromRange("neutral"));
 
 				const coordinates = participant.trackpoints.map((trackpoint: TrackPoint) => {
@@ -118,24 +130,23 @@
 							}
 						}
 					});
+	
+					map.addLayer({
+						id: layerId,
+						type: "line",
+						source: `trackpoints-${participant.uuid}`,
+						layout: {
+							"line-join": "round",
+							"line-cap": "round"
+						},
+						paint: {
+							"line-color": color,
+							"line-width": 4,
+							"line-opacity": 0.5,
+							"line-dasharray": [4, 2]
+						}
+					});
 				}
-
-				const layerId = `layer-${participant.uuid}`;
-				map.addLayer({
-					id: layerId,
-					type: "line",
-					source: `trackpoints-${participant.uuid}`,
-					layout: {
-						"line-join": "round",
-						"line-cap": "round"
-					},
-					paint: {
-						"line-color": color,
-						"line-width": 4,
-						"line-opacity": 0.5,
-						"line-dasharray": [4, 2]
-					}
-				});
 
 				// Create a popup, but don't add it to the map yet.
 				const popup = new maplibregl.Popup({
