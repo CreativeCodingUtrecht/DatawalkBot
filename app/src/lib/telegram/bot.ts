@@ -130,7 +130,7 @@ const handleText = async (msg: Message) => {
 	
 	if (!participant.current_datawalk_id) {
 		// Try using the received message as a code to join a datawalk 
-		const code = msg.text?.trim().toUpperCase();
+		const code = msg.text?.split(" ")[0].trim().toUpperCase();
 
 		const datawalk = await DatawalkRepository.findByCode(code);
 
@@ -139,7 +139,7 @@ const handleText = async (msg: Message) => {
 		} else {
 			await bot.sendMessage(
 				msg.chat.id,
-				`Sorry, I couldn't find a Datawalk with code <b>${code}</b>`,
+				`Sorry, I couldn't find a Datawalk with code <b>${code}</b>. Please provide me the 4-letter code of the Datawalk you want to join (e.g. <b>YGXH</b>). Use the /list command and I'll send you a list of active Datawalks.`,
 				{ parse_mode: "HTML" }
 			);
 		}
@@ -590,12 +590,6 @@ const storeDataPoint = async (msg: Message, file_id: string, media_type: string)
 		parse_mode: "HTML",
 		reply_to_message_id: msg.message_id
 	});
-
-	locationQueue[msg.chat.id] = {
-		datapoint_id: datapoint?.id,
-		photoMessageId: msg.message_id,
-		locationExpected: true
-	};
 };
 
 // bot.on("audio", async (msg: Message) => {
