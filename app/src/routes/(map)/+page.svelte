@@ -22,6 +22,7 @@
 							>Code <b>{datawalk.code}</b></span
 						>
 						<article>
+							{#if datawalk.contributingParticipants.length > 0}
 							<p>
 								Contributors:
 							</p>
@@ -35,6 +36,8 @@
 								{/each}
 							</div>
 							<br />
+							{/if}
+							{#if datawalk.currentParticipants.length > 0}
 							<p>
 								Active participants:
 							</p>
@@ -47,6 +50,7 @@
 									<!-- {/if} -->
 								{/each}
 							</div>
+							{/if}
 						</article>
 					</div>
 				</a>
