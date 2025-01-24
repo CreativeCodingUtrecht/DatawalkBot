@@ -376,7 +376,7 @@ bot.on("location", async (msg: Message) => {
 	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
 
 	if (!participant || !participant.current_datawalk_id) {
-		await bot.sendMessage(msg.chat.id, `Sorry, I was not able to store the location you sent.`, {
+		await bot.sendMessage(msg.chat.id, `Sorry, I was not able to store the location you sent. Please join a Datawalk first!`, {
 			parse_mode: "HTML"
 		});
 		return;
@@ -395,19 +395,26 @@ bot.on("location", async (msg: Message) => {
 		});
 		console.log("Added trackpoint:", trackpoint);
 
-		if (locationQueue[msg.chat.id] && locationQueue[msg.chat.id].locationExpected) {
-			let datapoint = await DataPointRepository.findById(locationQueue[msg.chat.id].datapoint_id);
+		const orphans = await DataPointRepository.findOrphansByParticipantId(participant.id);
 
-			datapoint.trackpoint_id = trackpoint?.id;
-
-			datapoint = await DataPointRepository.update(datapoint.id, datapoint);
-
-			// await bot.sendMessage(
-			// 	msg.chat.id,
-			// 	`Recorded location with media: ${msg.location?.latitude}, ${msg.location?.longitude}`
-			// );
-			delete locationQueue[msg.chat.id];
+		for (const orphan of orphans) {
+			orphan.trackpoint_id = trackpoint?.id;
+			await DataPointRepository.update(orphan.id, orphan);
 		}
+
+		// if (locationQueue[msg.chat.id] && locationQueue[msg.chat.id].locationExpected) {
+		// 	let datapoint = await DataPointRepository.findById(locationQueue[msg.chat.id].datapoint_id);
+
+		// 	datapoint.trackpoint_id = trackpoint?.id;
+
+		// 	datapoint = await DataPointRepository.update(datapoint.id, datapoint);
+
+		// 	// await bot.sendMessage(
+		// 	// 	msg.chat.id,
+		// 	// 	`Recorded location with media: ${msg.location?.latitude}, ${msg.location?.longitude}`
+		// 	// );
+		// 	delete locationQueue[msg.chat.id];
+		// }
 	}
 });
 

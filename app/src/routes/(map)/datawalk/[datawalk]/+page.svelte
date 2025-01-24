@@ -155,6 +155,7 @@
 				});
 
 				for (const trackpoint of participant.trackpoints) {
+					let i=0;
 					for (const datapoint of trackpoint.datapoints) {
 						let html;
 						if (datapoint.media_type === "text") {
@@ -185,9 +186,11 @@
 						}
 
 						marker
-							.setLngLat([trackpoint.longitude, trackpoint.latitude])
+							.setLngLat([trackpoint.longitude+(i*0.000002), trackpoint.latitude+(i*0.000002)])
 							.setPopup(popup)
 							.addTo(map);
+						
+						i++;
 					}
 				}
 			}

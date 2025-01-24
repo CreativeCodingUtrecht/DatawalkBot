@@ -1,6 +1,7 @@
 import { v4 as uuidv4, validate as validate_uuid } from "uuid";
 import db from "$lib/database";
 import type { DataPointUpdate, DataPoint, NewDataPoint } from "$lib/database/types";
+import { sql } from "kysely";
 
 export const findById = async (id: number) => {
 	return await db.selectFrom("datapoint").where("id", "=", id).selectAll().executeTakeFirst();
@@ -14,6 +15,15 @@ export const findByParticipantId = async (participant_id: number) => {
 	return await db
 		.selectFrom("datapoint")
 		.where("participant_id", "=", participant_id)
+		.selectAll()
+		.execute();
+};
+
+export const findOrphansByParticipantId = async (participant_id: number) => {
+	return await db
+		.selectFrom("datapoint")
+		.where("participant_id", "=", participant_id)
+		.where("trackpoint_id", "is", null)
 		.selectAll()
 		.execute();
 };
