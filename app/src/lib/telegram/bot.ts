@@ -108,6 +108,14 @@ bot.onText(/\/archive/, async (msg: Message) => {
 	}
 });
 
+bot.onText(/\/notify/, async (msg: Message) => {
+	if (isPrivateMessage(msg)) {
+		await handleNotify(msg);
+	} else {
+		await bot.sendMessage(msg.chat.id, "Sorry, you can only notify participants of a Datawalk in a private chat.");
+	}
+});
+
 bot.on("text", async (msg: Message) => {
 	if (isPrivateMessage(msg)) {
 		await handleText(msg);
@@ -346,6 +354,37 @@ const handleArchive = async (msg: Message) => {
 	}
 };
 
+const handleNotify = async (msg: Message) => {
+	const notification = msg.text?.replace("/notify", "").trim();
+	if (!notification || notification === "") {
+		await bot.sendMessage(
+			msg.chat.id,
+			`Please provide me a notification text for the Datawalk participants that you want to send.`,
+			{ parse_mode: "HTML" }
+		);
+		return;
+	}
+
+	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
+
+	if (participant && participant.current_datawalk_id) {
+		const participants = await ParticipantRepository.find({current_datawalk_id : participant.current_datawalk_id});
+
+		for (const participant of participants) {
+			await bot.sendMessage(
+				participant.chat_id,
+				`📢 Notification from the Datawalk host: <b>${notification}</b> `,
+				{ parse_mode: "HTML" }
+			);
+		}
+	} else {
+		await bot.sendMessage(
+			msg.chat.id,
+			`Sorry, unable to send notification to participants of the Datawalk. Please join a Datawalk first.`,
+			{ parse_mode: "HTML" }
+		);
+	}
+};
 
 bot.on("photo", async (msg: Message) => {
 	const file_id = msg.photo?.[msg.photo.length - 1].file_id;
