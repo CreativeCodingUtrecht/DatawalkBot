@@ -15,14 +15,23 @@
 	const { datawalk } = data;
 
 	const coordinatesAll: any = [];
-
+	let totalDistance : number = 0;
 	for (const participant of datawalk.participants_contributing) {
 		console.log("Participant:", participant);
 		const coordinates = participant.trackpoints.map((trackpoint: TrackPoint) => {
 			return [trackpoint.longitude, trackpoint.latitude];
 		});
 		coordinatesAll.push(...coordinates);
+
+		if (coordinates.length > 2) {
+			const line = turf.lineString(coordinates);
+			const distance = turf.length(line, { units: "meters" });
+			console.log("Participant:", participant.first_name, "Distance:", distance);
+			totalDistance += distance;
+		}
 	}
+
+	console.log("Total distance:", totalDistance);
 
 	// Default to CCU as center of the map
 	let latitude = 52.1046924;
@@ -117,6 +126,12 @@
 					return [trackpoint.longitude, trackpoint.latitude];
 				});
 
+				let distance : number = 0;
+				if (coordinates.length > 2) {
+					const line = turf.lineString(coordinates);
+					distance = turf.length(line, { units: "meters" });
+				}
+
 				// Show trackpoints
 				if (showTrackpoints) {
 					map.addSource(`trackpoints-${participant.uuid}`, {
@@ -155,12 +170,9 @@
 				});
 
 				map.on("mouseenter", layerId, (e) => {
-					// console.log("Mouse enter:", e);
-					// Change the cursor style as a UI indicator.
-
 					map.getCanvas().style.cursor = "pointer";
 					const coordinates = e.lngLat;
-					const description = `<b>${participant.first_name}</b>`;
+					const description = `<b>${participant.first_name}</b> walked ${distance.toFixed(0)}m`;
 					popup.setLngLat(coordinates).setHTML(description).addTo(map);
 				});
 

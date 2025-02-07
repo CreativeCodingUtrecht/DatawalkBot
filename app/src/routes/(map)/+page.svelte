@@ -26,7 +26,7 @@
 							<p>
 								Contributors:
 							</p>
-							<div class="w-full flex flex-auto gap-1">
+							<div class="w-full flex flex-wrap gap-1">
 								{#each datawalk.contributingParticipants as participant}									
 									<!-- {#if participant.current_datawalk_id == datawalk.id} -->
 									<div class="space-y-2">
@@ -41,7 +41,7 @@
 							<p>
 								Active participants:
 							</p>
-							<div class="w-full flex flex-auto gap-1">
+							<div class="w-full flex flex-wrap gap-1">
 								{#each datawalk.currentParticipants as participant}									
 									<!-- {#if participant.current_datawalk_id == datawalk.id} -->
 									<div class="space-y-2">
