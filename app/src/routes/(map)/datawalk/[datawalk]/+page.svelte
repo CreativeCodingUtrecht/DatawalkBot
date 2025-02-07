@@ -111,6 +111,8 @@
 		}
 
 		map.on("load", () => {
+			let overallTotalDatapoints : number = 0;
+			let overallTotalDistance : number = 0;
 			for (let participant of datawalk.participants_contributing) {
 				const layerId = `layer-${participant.uuid}`;
 
@@ -131,6 +133,8 @@
 					const line = turf.lineString(coordinates);
 					distance = turf.length(line, { units: "meters" });
 				}
+
+				overallTotalDistance += distance;
 
 				// Show trackpoints
 				if (showTrackpoints) {
@@ -163,24 +167,7 @@
 					});
 				}
 
-				// Create a popup, but don't add it to the map yet.
-				const popup = new maplibregl.Popup({
-					closeButton: false,
-					closeOnClick: false
-				});
-
-				map.on("mouseenter", layerId, (e) => {
-					map.getCanvas().style.cursor = "pointer";
-					const coordinates = e.lngLat;
-					const description = `<b>${participant.first_name}</b> walked ${distance.toFixed(0)}m`;
-					popup.setLngLat(coordinates).setHTML(description).addTo(map);
-				});
-
-				map.on("mouseleave", layerId, () => {
-					map.getCanvas().style.cursor = "";
-					popup.remove();
-				});
-
+				let totalDatapoints : number = 0;
 				for (const trackpoint of participant.trackpoints) {
 					let i=0;
 					for (const datapoint of trackpoint.datapoints) {
@@ -218,9 +205,33 @@
 							.addTo(map);
 						
 						i++;
+						totalDatapoints++;
 					}
 				}
+
+				overallTotalDatapoints += totalDatapoints;
+
+				// Create a popup, but don't add it to the map yet.
+				const popup = new maplibregl.Popup({
+					closeButton: false,
+					closeOnClick: false
+				});
+
+				map.on("mouseenter", layerId, (e) => {
+					map.getCanvas().style.cursor = "pointer";
+					const coordinates = e.lngLat;
+					const description = `<b>${participant.first_name}</b> walked <b>${distance.toFixed(0)}m</b> and collected <b>${totalDatapoints}</b> datapoints`;
+					popup.setLngLat(coordinates).setHTML(description).addTo(map);
+				});
+
+				map.on("mouseleave", layerId, () => {
+					map.getCanvas().style.cursor = "";
+					popup.remove();
+				});
 			}
+
+			console.log("Overall total distance walked:", overallTotalDistance);
+			console.log("Overall total data points:", overallTotalDatapoints);
 		});
 	});
 </script>
