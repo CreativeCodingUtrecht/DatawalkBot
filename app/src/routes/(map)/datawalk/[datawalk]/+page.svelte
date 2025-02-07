@@ -10,7 +10,7 @@
 	import maplibregl from "maplibre-gl";
 	import "maplibre-gl/dist/maplibre-gl.css";
 	import type { Map, LngLatBounds, StyleSpecification } from "maplibre-gl";
-
+	
 	export let data: PageData;
 	const { datawalk } = data;
 
@@ -110,11 +110,31 @@
 			map.setPitch(45);
 		}
 
+		const overallStatistics = {
+			distance: 0,
+			totalDatapoints: 0,
+			datapoints: {
+				photo: 0,
+				video: 0,
+				audio: 0,
+				text: 0
+			}
+		}
+
 		map.on("load", () => {
-			let overallTotalDatapoints : number = 0;
-			let overallTotalDistance : number = 0;
 			for (let participant of datawalk.participants_contributing) {
 				const layerId = `layer-${participant.uuid}`;
+				let userStatistics = {
+					participant: participant.uuid,
+					distance: 0,
+					totalDatapoints: 0,
+					datapoints: {
+						photo: 0,
+						video: 0,
+						audio: 0,
+						text: 0
+					}
+				}
 
 				if (showParticipantFirstName && participant.first_name !== showParticipantFirstName) {
 					continue;
@@ -128,13 +148,11 @@
 					return [trackpoint.longitude, trackpoint.latitude];
 				});
 
-				let distance : number = 0;
 				if (coordinates.length > 2) {
 					const line = turf.lineString(coordinates);
-					distance = turf.length(line, { units: "meters" });
+					const distance = turf.length(line, { units: "meters" });
+					userStatistics.distance = distance;
 				}
-
-				overallTotalDistance += distance;
 
 				// Show trackpoints
 				if (showTrackpoints) {
@@ -167,7 +185,6 @@
 					});
 				}
 
-				let totalDatapoints : number = 0;
 				for (const trackpoint of participant.trackpoints) {
 					let i=0;
 					for (const datapoint of trackpoint.datapoints) {
@@ -177,6 +194,21 @@
 						} else {
 							html = `${datapoint.created_at}<br/><b>${participant.first_name}</b> shared a <a href="/media/${datapoint.uuid}" target="_new">${datapoint.media_type}</a><br /><br />${datapoint.media_type == "photo" ? `<img width=200 src="/media/${datapoint.uuid}"><br />` : ""}${datapoint.caption ? `<b>${datapoint.caption}</b><br />` : ""}`
 						} 
+
+						switch(datapoint.media_type) {
+							case "text":
+								userStatistics.datapoints.text++;
+								break;
+							case "photo":
+								userStatistics.datapoints.photo++;
+								break;
+							case "video":
+								userStatistics.datapoints.video++;
+								break;
+							case "audio":
+								userStatistics.datapoints.audio++;
+								break;
+						}
 
 						const popup = new maplibregl.Popup({ offset: 25 })
 							.setHTML(
@@ -205,11 +237,9 @@
 							.addTo(map);
 						
 						i++;
-						totalDatapoints++;
+						userStatistics.totalDatapoints++;
 					}
 				}
-
-				overallTotalDatapoints += totalDatapoints;
 
 				// Create a popup, but don't add it to the map yet.
 				const popup = new maplibregl.Popup({
@@ -220,7 +250,7 @@
 				map.on("mouseenter", layerId, (e) => {
 					map.getCanvas().style.cursor = "pointer";
 					const coordinates = e.lngLat;
-					const description = `<b>${participant.first_name}</b> walked <b>${distance.toFixed(0)}m</b> and collected <b>${totalDatapoints}</b> datapoints`;
+					const description = `<b>${participant.first_name}</b> walked <b>${userStatistics.distance.toFixed(0)}m</b> and collected <b>${userStatistics.totalDatapoints}</b> datapoints`;
 					popup.setLngLat(coordinates).setHTML(description).addTo(map);
 				});
 
@@ -228,10 +258,16 @@
 					map.getCanvas().style.cursor = "";
 					popup.remove();
 				});
+
+				overallStatistics.distance += userStatistics.distance;
+				overallStatistics.totalDatapoints += userStatistics.totalDatapoints;
+				overallStatistics.datapoints.photo += userStatistics.datapoints.photo;
+				overallStatistics.datapoints.video += userStatistics.datapoints.video;
+				overallStatistics.datapoints.audio += userStatistics.datapoints.audio;
+				overallStatistics.datapoints.text += userStatistics.datapoints.text;
 			}
 
-			console.log("Overall total distance walked:", overallTotalDistance);
-			console.log("Overall total data points:", overallTotalDatapoints);
+			console.log("Overall statistics:", overallStatistics);
 		});
 	});
 </script>
