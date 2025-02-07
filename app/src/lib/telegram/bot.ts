@@ -108,6 +108,55 @@ bot.onText(/\/archive/, async (msg: Message) => {
 	}
 });
 
+bot.onText(/\/notify/, async (msg: Message) => {
+	if (isPrivateMessage(msg)) {
+		await handleNotify(msg);
+	} else {
+		await bot.sendMessage(msg.chat.id, "Sorry, you can only notify participants of a Datawalk in a private chat.");
+	}
+});
+
+bot.on("text", async (msg: Message) => {
+	if (isPrivateMessage(msg)) {
+		await handleText(msg);
+	} 	
+});
+
+const handleText = async (msg: Message) => {	
+	if (msg.text?.startsWith("/")) {
+		// This is a command, ignore it
+		return;
+	}
+
+	console.log("Handling text message")
+
+	const participant: Participant | undefined = await findOrCreateParticipant(msg);
+	if (!participant) {
+		console.error("Unable to find participant data")
+		return;		
+	}	
+	
+	if (!participant.current_datawalk_id) {
+		// Try using the received message as a code to join a datawalk 
+		const code = msg.text?.split(" ")[0].trim().toUpperCase();
+
+		const datawalk = await DatawalkRepository.findByCode(code);
+
+		if (datawalk) {
+			participate(msg, datawalk);
+		} else {
+			await bot.sendMessage(
+				msg.chat.id,
+				`Sorry, I couldn't find a Datawalk with code <b>${code}</b>. Please provide me the 4-letter code of the Datawalk you want to join (e.g. <b>YGXH</b>). Use the /list command and I'll send you a list of active Datawalks.`,
+				{ parse_mode: "HTML" }
+			);
+		}
+	} else {
+		// Try to store the text message as a data point
+		storeTextOnlyDataPoint(msg);		
+	}
+}
+
 const handleStart = async (msg: Message) => {
 	const participant: Participant | undefined = await findOrCreateParticipant(msg);
 
@@ -305,6 +354,37 @@ const handleArchive = async (msg: Message) => {
 	}
 };
 
+const handleNotify = async (msg: Message) => {
+	const notification = msg.text?.replace("/notify", "").trim();
+	if (!notification || notification === "") {
+		await bot.sendMessage(
+			msg.chat.id,
+			`Please provide me a notification text for the Datawalk participants that you want to send.`,
+			{ parse_mode: "HTML" }
+		);
+		return;
+	}
+
+	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
+
+	if (participant && participant.current_datawalk_id) {
+		const participants = await ParticipantRepository.find({current_datawalk_id : participant.current_datawalk_id});
+
+		for (const participant of participants) {
+			await bot.sendMessage(
+				participant.chat_id,
+				`📢 Notification from the Datawalk host: <b>${notification}</b> `,
+				{ parse_mode: "HTML" }
+			);
+		}
+	} else {
+		await bot.sendMessage(
+			msg.chat.id,
+			`Sorry, unable to send notification to participants of the Datawalk. Please join a Datawalk first.`,
+			{ parse_mode: "HTML" }
+		);
+	}
+};
 
 bot.on("photo", async (msg: Message) => {
 	const file_id = msg.photo?.[msg.photo.length - 1].file_id;
@@ -313,6 +393,11 @@ bot.on("photo", async (msg: Message) => {
 
 bot.on("video", async (msg: Message) => {
 	const file_id = msg.video?.file_id;
+	storeDataPoint(msg, file_id, "video");
+});
+
+bot.on("video_note", async (msg: Message) => {
+	const file_id = msg.video_note?.file_id;
 	storeDataPoint(msg, file_id, "video");
 });
 
@@ -330,7 +415,7 @@ bot.on("location", async (msg: Message) => {
 	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
 
 	if (!participant || !participant.current_datawalk_id) {
-		await bot.sendMessage(msg.chat.id, `Sorry, I was not able to store the location you sent.`, {
+		await bot.sendMessage(msg.chat.id, `Sorry, I was not able to store the location you sent. Please join a Datawalk first!`, {
 			parse_mode: "HTML"
 		});
 		return;
@@ -349,18 +434,11 @@ bot.on("location", async (msg: Message) => {
 		});
 		console.log("Added trackpoint:", trackpoint);
 
-		if (locationQueue[msg.chat.id] && locationQueue[msg.chat.id].locationExpected) {
-			let datapoint = await DataPointRepository.findById(locationQueue[msg.chat.id].datapoint_id);
+		const orphans = await DataPointRepository.findOrphansByParticipantId(participant.id);
 
-			datapoint.trackpoint_id = trackpoint?.id;
-
-			datapoint = await DataPointRepository.update(datapoint.id, datapoint);
-
-			// await bot.sendMessage(
-			// 	msg.chat.id,
-			// 	`Recorded location with media: ${msg.location?.latitude}, ${msg.location?.longitude}`
-			// );
-			delete locationQueue[msg.chat.id];
+		for (const orphan of orphans) {
+			orphan.trackpoint_id = trackpoint?.id;
+			await DataPointRepository.update(orphan.id, orphan);
 		}
 	}
 });
@@ -382,19 +460,13 @@ bot.on("edited_message", async (msg: Message) => {
 		});
 		console.log("Added data point:", trackpoint);
 
-		if (locationQueue[msg.chat.id] && locationQueue[msg.chat.id].locationExpected) {
-			let datapoint = await DataPointRepository.findById(locationQueue[msg.chat.id].datapoint_id);
+		const orphans = await DataPointRepository.findOrphansByParticipantId(participant.id);
 
-			datapoint.trackpoint_id = trackpoint?.id;
-
-			datapoint = await DataPointRepository.update(datapoint.id, datapoint);
-
-			// await bot.sendMessage(
-			// 	msg.chat.id,
-			// 	`Recorded location with media: ${msg.location?.latitude}, ${msg.location?.longitude}`
-			// );
-			delete locationQueue[msg.chat.id];
+		for (const orphan of orphans) {
+			orphan.trackpoint_id = trackpoint?.id;
+			await DataPointRepository.update(orphan.id, orphan);
 		}
+
 	}
 });
 
@@ -438,6 +510,39 @@ const participate = async (msg: Message, datawalk: Datawalk) => {
 		{ parse_mode: "HTML" }
 	);
 };
+
+const storeTextOnlyDataPoint = async (msg: Message) => {
+	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
+
+	if (!participant || !participant.current_datawalk_id) {
+		await bot.sendMessage(
+			msg.chat.id,
+			`Sorry, I was not able to store the text you sent.`,
+			{
+				parse_mode: "HTML"
+			}
+		);
+
+		return;
+	}
+
+	const datapoint: DataPoint | undefined = await DataPointRepository.create({
+		media_type: "text",
+		caption: msg.text,
+		participant_id: participant?.id
+	});
+
+	bot.sendMessage(msg.chat.id, `Thanks for sharing your thought! 💬`, {
+		parse_mode: "HTML",
+		reply_to_message_id: msg.message_id
+	});
+
+	locationQueue[msg.chat.id] = {
+		datapoint_id: datapoint?.id,
+		photoMessageId: msg.message_id,
+		locationExpected: true
+	};
+}
 
 const storeDataPoint = async (msg: Message, file_id: string, media_type: string) => {
 	if (!file_id) {
@@ -511,12 +616,6 @@ const storeDataPoint = async (msg: Message, file_id: string, media_type: string)
 		parse_mode: "HTML",
 		reply_to_message_id: msg.message_id
 	});
-
-	locationQueue[msg.chat.id] = {
-		datapoint_id: datapoint?.id,
-		photoMessageId: msg.message_id,
-		locationExpected: true
-	};
 };
 
 // bot.on("audio", async (msg: Message) => {

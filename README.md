@@ -7,11 +7,11 @@ Create your own Datawalk Bot using `@BotFather`. Make sure the following command
 
 ```
 start - Let's get to know me! 👋
-join - Join a Datawalk
-create - Create a new Datawalk
+join - Join Datawalk
+create - Create new Datawalk
 status - Find out which Datawalk you're currently in
-leave - Leave the current Datawalk
-list - List all active Datawalks
+leave - Leave current Datawalk
+list - List active Datawalks
 ```
 
 ## Datawalk Application

@@ -5,6 +5,7 @@
 	import type { TrackPoint } from "$lib/database/types";
 	import { colorFromRange, css } from "@thi.ng/color";
 	import Header from "$lib/components/Header.svelte";
+	import { page } from '$app/stores';
 
 	import maplibregl from "maplibre-gl";
 	import "maplibre-gl/dist/maplibre-gl.css";
@@ -68,6 +69,11 @@
 	};
 
 	onMount(() => {
+		const url = $page.url;
+		const showParticipantFirstName = $page.url.searchParams.get('first_name');
+		const showParticipantUsername = $page.url.searchParams.get('username');
+		const showTrackpoints = $page.url.searchParams.get('hide') === "" ? false : true;
+
 		map = new maplibregl.Map({
 			container: "map",
 			interactive: true,
@@ -97,6 +103,14 @@
 
 		map.on("load", () => {
 			for (let participant of datawalk.participants_contributing) {
+				const layerId = `layer-${participant.uuid}`;
+
+				if (showParticipantFirstName && participant.first_name !== showParticipantFirstName) {
+					continue;
+				} else if (showParticipantUsername && participant.username !== showParticipantUsername) {
+					continue;
+				}
+
 				const color = css(colorFromRange("neutral"));
 
 				const coordinates = participant.trackpoints.map((trackpoint: TrackPoint) => {
@@ -104,34 +118,35 @@
 				});
 
 				// Show trackpoints
-				map.addSource(`trackpoints-${participant.uuid}`, {
-					type: "geojson",
-					data: {
-						type: "Feature",
-						properties: {},
-						geometry: {
-							type: "LineString",
-							coordinates: coordinates
+				if (showTrackpoints) {
+					map.addSource(`trackpoints-${participant.uuid}`, {
+						type: "geojson",
+						data: {
+							type: "Feature",
+							properties: {},
+							geometry: {
+								type: "LineString",
+								coordinates: coordinates
+							}
 						}
-					}
-				});
-
-				const layerId = `layer-${participant.uuid}`;
-				map.addLayer({
-					id: layerId,
-					type: "line",
-					source: `trackpoints-${participant.uuid}`,
-					layout: {
-						"line-join": "round",
-						"line-cap": "round"
-					},
-					paint: {
-						"line-color": color,
-						"line-width": 4,
-						"line-opacity": 0.5,
-						"line-dasharray": [4, 2]
-					}
-				});
+					});
+	
+					map.addLayer({
+						id: layerId,
+						type: "line",
+						source: `trackpoints-${participant.uuid}`,
+						layout: {
+							"line-join": "round",
+							"line-cap": "round"
+						},
+						paint: {
+							"line-color": color,
+							"line-width": 4,
+							"line-opacity": 0.5,
+							"line-dasharray": [4, 2]
+						}
+					});
+				}
 
 				// Create a popup, but don't add it to the map yet.
 				const popup = new maplibregl.Popup({
@@ -155,10 +170,18 @@
 				});
 
 				for (const trackpoint of participant.trackpoints) {
+					let i=0;
 					for (const datapoint of trackpoint.datapoints) {
+						let html;
+						if (datapoint.media_type === "text") {
+							html = `${datapoint.created_at}<br/><b>${participant.first_name}</b> shared a thought<br /><br /><b>${datapoint.caption}</b><br />`
+						} else {
+							html = `${datapoint.created_at}<br/><b>${participant.first_name}</b> shared a <a href="/media/${datapoint.uuid}" target="_new">${datapoint.media_type}</a><br /><br />${datapoint.media_type == "photo" ? `<img width=200 src="/media/${datapoint.uuid}"><br />` : ""}${datapoint.caption ? `<b>${datapoint.caption}</b><br />` : ""}`
+						} 
+
 						const popup = new maplibregl.Popup({ offset: 25 })
 							.setHTML(
-								`${datapoint.created_at}<br/><b>${participant.first_name}</b> shared thisl <a href="/media/${datapoint.uuid}" target="_new">${datapoint.media_type}</a><br /><br />${datapoint.media_type == "photo" ? `<img width=200 src="/media/${datapoint.uuid}"><br />` : ""}${datapoint.caption ? `<b>${datapoint.caption}</b><br />` : ""}`
+								html
 							)
 							.setMaxWidth("400px");
 
@@ -178,9 +201,11 @@
 						}
 
 						marker
-							.setLngLat([trackpoint.longitude, trackpoint.latitude])
+							.setLngLat([trackpoint.longitude+(i*0.000001), trackpoint.latitude+(i*0.0000001)])
 							.setPopup(popup)
 							.addTo(map);
+						
+						i++;
 					}
 				}
 			}
@@ -190,6 +215,9 @@
 
 <div id="map"></div>
 <Header absolute={true} title={datawalk.name} />
+<div class="card p-4">
+	Basic
+</div>
 
 <style>
 	#map {
