@@ -3,9 +3,9 @@
 	import Header from "$lib/components/Header.svelte";
 
 	export let data: PageData;
-	const { datawalks, aggregration } = data;
+	const { datawalks } = data;
 
-	console.log("Aggregated datawalks:", aggregration);
+	console.log("Aggregated datawalks:", datawalks);
 </script>
 
 <div class="container w-full">
@@ -14,7 +14,7 @@
 	<div class="container mx-auto p-8 space-y-8">
 		<h4 class="h4">Datawalks</h4>
 		<div class="w-full text-token grid grid-cols-1 md:grid-cols-3 gap-4">
-			{#each aggregration as datawalk}
+			{#each datawalks as datawalk}
 				<a href={`/datawalk/${datawalk.code}`} class="card card-hover overflow-hidden">
 					<div class="p-4 space-y-4">
 						<h6 class="h6" data-toc-ignore>{datawalk.name}</h6>

@@ -188,6 +188,7 @@ export const findAllWithParticipantsAndContributors = async () => {
 			).as("contributingParticipants")
 		])
 		.where("datawalk.status", "=", "active")
+		.orderBy("datawalk.created_at", "desc")
 		.execute();
 };
 
