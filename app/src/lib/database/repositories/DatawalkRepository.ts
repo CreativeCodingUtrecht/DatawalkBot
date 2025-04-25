@@ -191,6 +191,32 @@ export const findAllWithParticipantsAndContributors = async () => {
 		.execute();
 };
 
+export const findExportableByCode = async (code: string) => {
+	let query = db
+		.selectFrom("datawalk")
+		.select((eb) => [
+			"datawalk.created_at",
+			"datawalk.code",
+			"datawalk.name",
+
+			// Current participants as a JSON array of objects using jsonArrayFrom
+			jsonArrayFrom(
+				eb
+					.selectFrom("trackpoint")
+					.select([
+						"trackpoint.created_at",
+						"trackpoint.latitude",
+						"trackpoint.longitude"
+					])
+					.innerJoin('datapoint', 'datapoint.trackpoint_id', 'trackpoint.id')					
+					.whereRef("trackpoint.datawalk_id", "=", "datawalk.id")
+			).as("trackpoints"),
+		])		
+		.where("datawalk.code", "=", code);
+
+	return await query.executeTakeFirst();
+}
+
 export const findAll = async () => {
 	return find({});
 };
