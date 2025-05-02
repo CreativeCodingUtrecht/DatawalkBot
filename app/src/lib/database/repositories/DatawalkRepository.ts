@@ -195,22 +195,71 @@ export const findExportableByCode = async (code: string) => {
 	let query = db
 		.selectFrom("datawalk")
 		.select((eb) => [
-			"datawalk.created_at",
-			"datawalk.code",
+			"datawalk.uuid",
 			"datawalk.name",
-
-			// Current participants as a JSON array of objects using jsonArrayFrom
+			"datawalk.code",
+			"datawalk.status",
+			"datawalk.created_at",			
 			jsonArrayFrom(
 				eb
 					.selectFrom("trackpoint")
 					.select([
-						"trackpoint.created_at",
+						"trackpoint.uuid",
+						"participant.uuid as participant_uuid",						
+						"participant.first_name as participant_first_name",
+						"participant.last_name as participant_last_name",
+						"participant.username as participant_username",
+						"participant.organization as participant_organization",						
 						"trackpoint.latitude",
-						"trackpoint.longitude"
+						"trackpoint.longitude",
+						"trackpoint.accuracy",
+						"trackpoint.heading",	
+						"trackpoint.created_at"												
 					])
-					.innerJoin('datapoint', 'datapoint.trackpoint_id', 'trackpoint.id')					
+					.innerJoin('participant', 'participant.id', 'trackpoint.participant_id')						
 					.whereRef("trackpoint.datawalk_id", "=", "datawalk.id")
 			).as("trackpoints"),
+			jsonArrayFrom(
+				eb
+					.selectFrom("trackpoint")
+					.innerJoin("participant as participant", "participant.id", "trackpoint.participant_id")
+					.select([
+						"participant.uuid",						
+						"participant.username",
+						"participant.first_name",
+						"participant.last_name",
+						"participant.organization",
+						"participant.created_at"
+					])					
+					.whereRef("trackpoint.datawalk_id", "=", "datawalk.id")
+					.distinct()
+			).as("participants"),
+			jsonArrayFrom(
+				eb
+					.selectFrom("datapoint")
+					.innerJoin("participant as participant", "participant.id", "datapoint.participant_id")
+					.innerJoin("trackpoint", "trackpoint.id", "datapoint.trackpoint_id")
+					.select([
+						"datapoint.uuid",
+						"trackpoint.uuid as trackpoint_uuid",
+						"participant.uuid as participant_uuid",
+						"participant.first_name as participant_first_name",
+						"participant.last_name as participant_last_name",
+						"participant.username as participant_username",
+						"participant.organization as participant_organization",						
+						"datapoint.media_type",
+						"datapoint.caption",
+						"datapoint.filename",
+						"datapoint.mime_type",
+						"trackpoint.latitude",
+						"trackpoint.longitude",
+						"trackpoint.accuracy",
+						"trackpoint.heading",
+						"datapoint.created_at",						
+					])					
+					.whereRef("trackpoint.datawalk_id", "=", "datawalk.id")
+					.distinct()
+			).as("datapoints")
 		])		
 		.where("datawalk.code", "=", code);
 
