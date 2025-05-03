@@ -3,10 +3,11 @@ import { error } from '@sveltejs/kit';
 
 import * as GeoJSONUtil from '$lib/util/geojson';
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ url, params }) => {
+    const hostname = url.toString().replace(/\/export\/.*/, '');
     const code = params.code;
 
-    const geojson = await GeoJSONUtil.exportDatawalkGeoJSON(code);
+    const geojson = await GeoJSONUtil.exportDatawalkGeoJSON(code, hostname);
 
     return new Response(JSON.stringify(geojson), {
         headers: {
