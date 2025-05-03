@@ -1,10 +1,9 @@
 import type { RequestHandler } from './$types';
-import { error } from '@sveltejs/kit';
 
 import * as GeoJSONUtil from '$lib/util/geojson';
 
 export const GET: RequestHandler = async ({ url, params }) => {
-    const hostname = url.toString().replace(/\/export\/.*/, '');
+    const hostname = `${url.protocol}//${url.host}`;
     const code = params.code;
 
     const geojson = await GeoJSONUtil.exportDatawalkGeoJSON(code, hostname);
