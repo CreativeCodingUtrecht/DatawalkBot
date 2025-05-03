@@ -6,8 +6,7 @@ import * as GeoJSONUtil from '$lib/util/geojson';
 export const GET: RequestHandler = async ({ params }) => {
     const code = params.code;
 
-    const geojson = await GeoJSONUtil.geoJSONDatawalk(code);
-    // console.debug("GeoJSON: ", geojson);    
+    const geojson = await GeoJSONUtil.exportDatawalkGeoJSON(code);
 
     return new Response(JSON.stringify(geojson), {
         headers: {

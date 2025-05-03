@@ -8,7 +8,7 @@ import type {
 import * as DatawalkRepository from "$lib/database/repositories/DatawalkRepository";
 import * as turf from "@turf/turf";
 
-export const geoJSONDatawalk = async (code: string): Promise<GeoJSON.FeatureCollection> => {
+export const exportDatawalkGeoJSON = async (code: string): Promise<GeoJSON.FeatureCollection> => {
 	const datawalk: DatawalkWithParticipantsData | undefined =
 		await DatawalkRepository.findDatawalkWithRelationsByCode(code);
 
@@ -19,15 +19,15 @@ export const geoJSONDatawalk = async (code: string): Promise<GeoJSON.FeatureColl
 	const geojson = {
 		type: "FeatureCollection",
 		features: [],
-		metadata: {
-			datawalk: {
-				uuid: datawalk.uuid,
-				name: datawalk.name,
-				code: datawalk.code,
-				status: datawalk.status
-			}
+		datawalk: {
+			uuid: datawalk.uuid,
+			name: datawalk.name,
+			code: datawalk.code,
+			status: datawalk.status
 		}
-	} as GeoJSON.FeatureCollection;
+	} as GeoJSON.FeatureCollection & { 
+		datawalk: any; 
+	};
 
 	for (const participant of datawalk.participants) {
 		const trackpoints: TrackPoint[] = participant.trackpoints;
@@ -36,18 +36,8 @@ export const geoJSONDatawalk = async (code: string): Promise<GeoJSON.FeatureColl
 		geojson.features.push(...features);
 	}
 
-	const coordinates = geojson.features
-		.map((feature) => {
-			return feature.geometry.coordinates;
-		})
-		.flat();
-
-	console.log("Coordinates: ", coordinates);
-
-	// geojson.bbox = bbox(coordinates);
-	// geojson.metadata.center = center(coordinates);
-
-	// console.log("GeoJSON: ", geojson);
+	geojson.bbox = turf.bbox(geojson);
+	geojson.datawalk.center = turf.center(geojson).geometry.coordinates as GeoJSON.Position;
 
 	return geojson;
 };
@@ -123,13 +113,4 @@ const participantFeatureProperties = (participant: Participant): GeoJSON.GeoJson
 	} as GeoJSON.GeoJsonProperties;
 
 	return geojson;
-};
-
-const bbox = (coordinates: GeoJSON.Position[]): GeoJSON.BBox => {
-	return turf.bbox(turf.points(coordinates));
-};
-
-const center = (coordinates: GeoJSON.Position[]): GeoJSON.Position => {
-	const center = turf.center(turf.points(coordinates));
-	return center.geometry.coordinates as GeoJSON.Position;
 };
