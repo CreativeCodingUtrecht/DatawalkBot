@@ -19,7 +19,15 @@ export interface DatawalkTable {
 export type Datawalk = Selectable<DatawalkTable>;
 export type NewDatawalk = Insertable<DatawalkTable>;
 export type DatawalkUpdate = Updateable<DatawalkTable>;
+export type DatawalkWithParticipantsData = Datawalk & {
+	participants: ParticipantWithData[];
+};
 
+export type DatawalkExportable = Datawalk & {
+	participants: Participant[];
+	trackpoints: TrackPoint[];
+	datapoints: DataPointWithCoordinates[];
+};
 export interface ParticipantTable {
 	id: Generated<number>;
 	created_at: Generated<Date>;
@@ -36,6 +44,10 @@ export interface ParticipantTable {
 export type Participant = Selectable<ParticipantTable>;
 export type NewParticipant = Insertable<ParticipantTable>;
 export type ParticipantUpdate = Updateable<ParticipantTable>;
+export type ParticipantWithData = Participant & {
+	trackpoints: TrackPoint[];
+	datapoints: DataPointWithCoordinates[];
+
 
 export interface TrackPointTable {
 	id: Generated<number>;
@@ -68,3 +80,8 @@ export interface DataPointTable {
 export type DataPoint = Selectable<DataPointTable>;
 export type NewDataPoint = Insertable<DataPointTable>;
 export type DataPointUpdate = Updateable<DataPointTable>;
+export type DataPointWithCoordinates = DataPoint & {
+	// When joined, add latitude and longitude from TrackPoint to the DataPoint type
+	latitude: number;
+	longitude: number;
+}

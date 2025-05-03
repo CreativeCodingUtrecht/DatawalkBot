@@ -1,8 +1,15 @@
 import { v4 as uuidv4, validate as validate_uuid } from "uuid";
 import db from "$lib/database";
-import type { DatawalkUpdate, Datawalk, NewDatawalk } from "$lib/database/types";
-import { jsonArrayFrom, jsonObjectFrom } from "kysely/helpers/sqlite";
-import { sql } from 'kysely';
+import type {
+	DatawalkUpdate,
+	Datawalk,
+	NewDatawalk,
+	Participant,
+	DatawalkExportable,
+	DatawalkWithParticipantsData
+} from "$lib/database/types";
+import { jsonArrayFrom } from "kysely/helpers/sqlite";
+import { sql } from "kysely";
 
 export const findById = async (id: number) => {
 	return await db.selectFrom("datawalk").where("id", "=", id).selectAll().executeTakeFirst();
@@ -46,7 +53,9 @@ export const find = async (criteria: Partial<Datawalk>) => {
 	return await query.orderBy("created_at", "desc").selectAll().execute();
 };
 
-export const findWithParticipantsByCode = async (code: string) => {
+export const findWithParticipantsByCode = async (
+	code: string
+): Promise<DatawalkWithParticipants> => {
 	return await db
 		.selectFrom("datawalk")
 		.selectAll("datawalk")
@@ -165,11 +174,7 @@ export const findAllWithParticipantsAndContributors = async () => {
 			jsonArrayFrom(
 				eb
 					.selectFrom("participant")
-					.select([
-						"participant.id",
-						"participant.first_name",
-						"participant.last_name"
-					])
+					.select(["participant.id", "participant.first_name", "participant.last_name"])
 					.whereRef("participant.current_datawalk_id", "=", "datawalk.id")
 			).as("currentParticipants"),
 
@@ -178,11 +183,7 @@ export const findAllWithParticipantsAndContributors = async () => {
 				eb
 					.selectFrom("trackpoint")
 					.innerJoin("participant as contributor", "contributor.id", "trackpoint.participant_id")
-					.select([
-						"contributor.id",
-						"contributor.first_name",
-						"contributor.last_name",
-					])					
+					.select(["contributor.id", "contributor.first_name", "contributor.last_name"])
 					.whereRef("trackpoint.datawalk_id", "=", "datawalk.id")
 					.distinct()
 			).as("contributingParticipants")
@@ -192,80 +193,129 @@ export const findAllWithParticipantsAndContributors = async () => {
 		.execute();
 };
 
-export const findExportableByCode = async (code: string) => {
+export const findExportableParticipantData = async (
+	datawalk: Datawalk,
+	participant: Participant
+): Promise<DatawalkExportable> => {
 	let query = db
-		.selectFrom("datawalk")
+		.selectFrom("participant")
+		.select([
+			"participant.id",
+			"participant.uuid",
+			"participant.first_name",
+			"participant.last_name",
+			"participant.username",
+			"participant.organization",
+			"participant.created_at",
+			"participant.email",
+			"participant.chat_id"
+		])
+		.where("participant.id", "=", participant.id)
 		.select((eb) => [
-			"datawalk.uuid",
-			"datawalk.name",
-			"datawalk.code",
-			"datawalk.status",
-			"datawalk.created_at",			
 			jsonArrayFrom(
 				eb
 					.selectFrom("trackpoint")
 					.select([
 						"trackpoint.uuid",
-						"participant.uuid as participant_uuid",						
-						"participant.first_name as participant_first_name",
-						"participant.last_name as participant_last_name",
-						"participant.username as participant_username",
-						"participant.organization as participant_organization",						
-						"trackpoint.latitude",
-						"trackpoint.longitude",
-						"trackpoint.accuracy",
-						"trackpoint.heading",	
-						"trackpoint.created_at"												
-					])
-					.innerJoin('participant', 'participant.id', 'trackpoint.participant_id')						
-					.whereRef("trackpoint.datawalk_id", "=", "datawalk.id")
-			).as("trackpoints"),
-			jsonArrayFrom(
-				eb
-					.selectFrom("trackpoint")
-					.innerJoin("participant as participant", "participant.id", "trackpoint.participant_id")
-					.select([
-						"participant.uuid",						
-						"participant.username",
-						"participant.first_name",
-						"participant.last_name",
-						"participant.organization",
-						"participant.created_at"
-					])					
-					.whereRef("trackpoint.datawalk_id", "=", "datawalk.id")
-					.distinct()
-			).as("participants"),
-			jsonArrayFrom(
-				eb
-					.selectFrom("datapoint")
-					.innerJoin("participant as participant", "participant.id", "datapoint.participant_id")
-					.innerJoin("trackpoint", "trackpoint.id", "datapoint.trackpoint_id")
-					.select([
-						"datapoint.uuid",
-						"trackpoint.uuid as trackpoint_uuid",
-						"participant.uuid as participant_uuid",
-						"participant.first_name as participant_first_name",
-						"participant.last_name as participant_last_name",
-						"participant.username as participant_username",
-						"participant.organization as participant_organization",						
-						"datapoint.media_type",
-						"datapoint.caption",
-						"datapoint.filename",
-						"datapoint.mime_type",
 						"trackpoint.latitude",
 						"trackpoint.longitude",
 						"trackpoint.accuracy",
 						"trackpoint.heading",
-						"datapoint.created_at",						
-					])					
+						"trackpoint.created_at"
+					])
+					.innerJoin("participant", "participant.id", "trackpoint.participant_id")
+					.whereRef("trackpoint.participant_id", "=", "participant.id")
+					.where("trackpoint.datawalk_id", "=", datawalk.id)
+			).as("trackpoints"),
+			jsonArrayFrom(
+				eb
+					.selectFrom("datapoint")
+					.select([
+						"datapoint.uuid",
+						"datapoint.media_type",
+						"datapoint.caption",
+						"datapoint.filename",
+						"datapoint.mime_type",
+						"datapoint.created_at"
+						// "trackpoint.latitude",
+						// "trackpoint.longitude",
+					])
+					.innerJoin("participant as participant", "participant.id", "datapoint.participant_id")
+					.innerJoin("trackpoint", "trackpoint.id", "datapoint.trackpoint_id")
+					.whereRef("trackpoint.participant_id", "=", "participant.id")
+					.where("trackpoint.datawalk_id", "=", datawalk.id)
+			).as("datapoints")
+		]);
+
+	return await query.execute();
+};
+
+export const findDatawalkWithRelationsByCode = async (code: string) => {
+	let query = db
+		.selectFrom("datawalk")
+		.select((eb) => [
+			"datawalk.id",
+			"datawalk.uuid",
+			"datawalk.name",
+			"datawalk.code",
+			"datawalk.status",
+			"datawalk.created_at",
+			jsonArrayFrom(
+				eb
+					.selectFrom("participant")
+					.select([
+						"participant.id",
+						"participant.uuid",
+						"participant.username",
+						"participant.first_name",
+						"participant.last_name",
+						"participant.organization",
+						"participant.created_at",
+						jsonArrayFrom(
+							eb
+								.selectFrom("trackpoint")
+								.select([
+									"trackpoint.id",
+									"trackpoint.uuid",
+									"trackpoint.latitude",
+									"trackpoint.longitude",
+									"trackpoint.accuracy",
+									"trackpoint.heading",
+									"trackpoint.created_at"
+								])
+								// .innerJoin("participant", "participant.id", "trackpoint.participant_id")
+								.whereRef("trackpoint.datawalk_id", "=", "datawalk.id")
+								.whereRef("trackpoint.participant_id", "=", sql.ref("participant.id"))
+						).as("trackpoints"),
+						jsonArrayFrom(
+							eb
+								.selectFrom("datapoint")
+								.innerJoin("trackpoint", "trackpoint.id", "datapoint.trackpoint_id")
+								// .innerJoin("participant", "participant.id", "trackpoint.participant_id")
+								.select([
+									"datapoint.uuid",
+									"datapoint.media_type",
+									"datapoint.caption",
+									"datapoint.filename",
+									"datapoint.mime_type",
+									"datapoint.created_at",
+									"trackpoint.latitude",
+									"trackpoint.longitude"
+								])
+								.whereRef("trackpoint.datawalk_id", "=", "datawalk.id")
+								.whereRef("trackpoint.participant_id", "=", sql.ref("participant.id"))
+						).as("datapoints")
+					])
+					.innerJoin("trackpoint", "trackpoint.participant_id", "participant.id")
 					.whereRef("trackpoint.datawalk_id", "=", "datawalk.id")
 					.distinct()
-			).as("datapoints")
-		])		
-		.where("datawalk.code", "=", code);
+			).as("participants")
+		])
+		.where("datawalk.code", "=", code)
+		.$castTo<DatawalkWithParticipantsData>();
 
 	return await query.executeTakeFirst();
-}
+};
 
 export const findAll = async () => {
 	return find({});

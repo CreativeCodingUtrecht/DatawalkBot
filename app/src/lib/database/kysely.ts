@@ -1,4 +1,4 @@
-import { Kysely, Migrator, SqliteDialect, type LogConfig } from "kysely";
+import { Kysely, Migrator, SqliteDialect, ParseJSONResultsPlugin, type LogConfig } from "kysely";
 import SQLite from "better-sqlite3";
 import { SerializeJSONPlugin } from "./serialize-json-plugin";
 import { browser } from "$app/environment";
@@ -53,7 +53,8 @@ const configureLog = (): LogConfig => {
 const db = new Kysely<Database>({
 	dialect: configureDialect(),
 	log: configureLog(),
-	plugins: [new SerializeJSONPlugin()]
+	// plugins: [new SerializeJSONPlugin()]
+	plugins: [new ParseJSONResultsPlugin()]
 });
 
 const migrateToLatest = async () => {
