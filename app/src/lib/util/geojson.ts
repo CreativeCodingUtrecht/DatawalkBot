@@ -41,12 +41,24 @@ export const exportDatawalkGeoJSON = async (code: string, hostname: string = "")
 		geojson.features.push(...features);
 	}
 
-	geojson.bbox = turf.bbox(geojson);
-	geojson.datawalk.center = turf.center(geojson).geometry.coordinates as GeoJSON.Position;
+	try {		
+		geojson.datawalk.center = turf.center(geojson).geometry.coordinates as GeoJSON.Position;
+		geojson.bbox = turf.bbox(geojson);		
+	} catch (error) {
+		console.error("Error calculating bbox or center:", error);
+	}
 
+	// Post-process the GeoJSON to ensure all features have the correct properties
 	geojson.features.map((feature => {
 		if (feature.geometry.type === "Point") {
 			if (feature.properties) feature.properties.url = `${hostname}/media/${feature.properties.uuid}`;
+		}
+
+		if (feature.geometry.type === "LineString") {
+			if (feature.geometry.coordinates.length < 2) {
+				feature.geometry.type = "Point";
+				feature.geometry.coordinates = feature.geometry.coordinates.flat();
+			}
 		}
 	}));
 

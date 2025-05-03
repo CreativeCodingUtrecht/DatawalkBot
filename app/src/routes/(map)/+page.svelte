@@ -13,15 +13,16 @@
 	
 	<div class="container mx-auto p-8 space-y-8">
 		<h4 class="h4">Datawalks</h4>
-		<div class="w-full text-token grid grid-cols-1 md:grid-cols-3 gap-4">
+		<div class="w-full text-token grid grid-cols-1 md:grid-cols-2 gap-4">
 			{#each datawalks as datawalk}
 				<a href={`/datawalk/${datawalk.code}`} class="card card-hover overflow-hidden">
-					<div class="p-4 space-y-4">
-						<h6 class="h6" data-toc-ignore>{datawalk.name}</h6>
-						<span class="text-xs"
-							>Code <b>{datawalk.code}</b></span
-						>
-						<article>
+					<div class="p-4 space-y-4">						
+						<span class="text-xs">
+							Code <b>{datawalk.code}</b>
+						</span>
+						<h6 class="h6" data-toc-ignore>{datawalk.name}</h6> 
+						<a class="btn btn-sm btn-icon variant-ringed-primary" href={`/export/${datawalk.code}`} target="_new"><img src="/images/json.svg" width="22" alt="Export to GeoJSON"/></a>						
+						<article>							
 							{#if datawalk.contributingParticipants.length > 0}
 							<p>
 								Contributors:
@@ -50,7 +51,7 @@
 									<!-- {/if} -->
 								{/each}
 							</div>
-							{/if}
+							{/if}															
 						</article>
 					</div>
 				</a>
