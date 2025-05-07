@@ -21,7 +21,8 @@
 							Code <b>{datawalk.code}</b>
 						</span>
 						<h6 class="h6" data-toc-ignore>{datawalk.name}</h6> 
-						<a class="btn btn-sm btn-icon variant-ringed-primary" href={`/export/${datawalk.code}`} target="_new"><img src="/images/json.svg" width="22" alt="Export to GeoJSON"/></a>						
+						<a class="btn btn-sm btn-icon variant-ringed-primary" href={`/export/geojson/${datawalk.code}`} target="_new"><img src="/images/json.svg" width="22" alt="Export to GeoJSON"/></a>						
+						<a class="btn btn-sm btn-icon variant-ringed-primary" href={`/export/archive/${datawalk.code}`} target="_new"><img src="/images/download.svg" width="22" alt="Download as ZIP"/></a>						
 						<article>							
 							{#if datawalk.contributingParticipants.length > 0}
 							<p>

@@ -85,7 +85,7 @@ export const geoJSONTrackFeature = (
 	return {
 		type: "Feature",
 		geometry: {
-			type: "LineString",
+			type: trackpoints.length > 1 ? "LineString" : "Point",
 			coordinates: trackpoints.map((trackpoint) => [
 				trackpoint.longitude,
 				trackpoint.latitude
