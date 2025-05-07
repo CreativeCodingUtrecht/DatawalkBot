@@ -34,6 +34,10 @@ export const GET: RequestHandler = async ({ url, params }) => {
     }    
     await Promise.all(
     allDatapoint.map(async (datapoint) => {
+		if (datapoint.media_type === "text") {
+			return;
+		}
+
 		const response = await fetch(`${hostname}/media/${datapoint.uuid}`);
 		if (!response.ok) {
 			console.error(`Failed to fetch ${url}`);
