@@ -1,5 +1,13 @@
 import type { RequestHandler } from "./$types";
 import JSZip from "jszip";
+import fs from "fs";
+import { env } from "$env/dynamic/private";
+
+const DATA_MEDIA_ROOT = env.DATA_MEDIA_ROOT;
+if (!DATA_MEDIA_ROOT) {
+	throw new Error("DATA_MEDIA_ROOT is not set");
+}
+
 import type {
 	DatawalkWithParticipantsData,
     DataPointWithCoordinates
@@ -35,18 +43,19 @@ export const GET: RequestHandler = async ({ url, params }) => {
     await Promise.all(
     allDatapoint.map(async (datapoint) => {
 		if (datapoint.media_type === "text") {
+			// Nothing to store for this datapoint type
 			return;
 		}
 
-		const response = await fetch(`${hostname}/media/${datapoint.uuid}`);
-		if (!response.ok) {
-			console.error(`Failed to fetch ${url}`);
-			return;
+		console.log("Adding file", datapoint.filename);
+		const filename : string = `${DATA_MEDIA_ROOT}/${datapoint.filename}`;
+
+		if (!fs.existsSync(filename)) {
+			console.log(`File ${filename} does not exist, ignoring instead of interrupting export`)
 		}
-		const arrayBuffer = await response.arrayBuffer();
-        console.log("Adding file", datapoint.filename);
-        const uint8 = new Uint8Array(arrayBuffer);
-		zip.file(`${datapoint.filename}`, uint8);
+
+		const readStream = fs.createReadStream(filename);
+		zip.file(`${datapoint.filename}`, readStream);
 	}));
 
 	const base64 = await zip.generateAsync({ type: "blob" });
