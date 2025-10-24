@@ -8,7 +8,7 @@ This project is licensed under the [Creative Commons Attribution-NonCommercial 4
 ### Attribution
 If you use or adapt this work non-commercially, please credit it as follows:
 
-> "Based on work by Creative Coding Utrecht (https://github.com/CreativeCodingUtrecht/BirdWatchBot) licensed under CC BY-NC 4.0."
+> "Based on work by Creative Coding Utrecht (https://github.com/CreativeCodingUtrecht/DatawalkBot) licensed under CC BY-NC 4.0."
 
 ## Telegram Bot
 
