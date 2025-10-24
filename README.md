@@ -1,6 +1,15 @@
 # DatawalkBot
 Telegram bot-based data collection tool designed for workshop participants engaging in a datawalk.
 
+## License
+
+This project is licensed under the [Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/).
+
+### Attribution
+If you use or adapt this work non-commercially, please credit it as follows:
+
+> "Based on work by Creative Coding Utrecht (https://github.com/CreativeCodingUtrecht/BirdWatchBot) licensed under CC BY-NC 4.0."
+
 ## Telegram Bot
 
 Create your own Datawalk Bot using `@BotFather`. Make sure the following commands have been configured for the Datawalk Bot using `@BotFather` with the command `/setcommands`:
