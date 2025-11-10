@@ -59,6 +59,17 @@ bot.onText(/\/join/, async (msg: Message) => {
 	}
 });
 
+bot.onText(/\/disconnect/, async (msg: Message) => {
+	if (isPrivateMessage(msg)) {
+		await handleDisconnect(msg);
+	} else {
+		await bot.sendMessage(
+			msg.chat.id,
+			"Sorry, you can only disconnect users from a Datawalk in a private chat."
+		);
+	}
+});
+
 bot.onText(/\/name/, async (msg: Message) => {
 	if (isPrivateMessage(msg)) {
 		await handleName(msg);
@@ -104,7 +115,10 @@ bot.onText(/\/archive/, async (msg: Message) => {
 	if (isPrivateMessage(msg)) {
 		await handleArchive(msg);
 	} else {
-		await bot.sendMessage(msg.chat.id, "Sorry, you can only archive and unarchive a Datawalk in a private chat.");
+		await bot.sendMessage(
+			msg.chat.id,
+			"Sorry, you can only archive and unarchive a Datawalk in a private chat."
+		);
 	}
 });
 
@@ -112,32 +126,35 @@ bot.onText(/\/notify/, async (msg: Message) => {
 	if (isPrivateMessage(msg)) {
 		await handleNotify(msg);
 	} else {
-		await bot.sendMessage(msg.chat.id, "Sorry, you can only notify participants of a Datawalk in a private chat.");
+		await bot.sendMessage(
+			msg.chat.id,
+			"Sorry, you can only notify participants of a Datawalk in a private chat."
+		);
 	}
 });
 
 bot.on("text", async (msg: Message) => {
 	if (isPrivateMessage(msg)) {
 		await handleText(msg);
-	} 	
+	}
 });
 
-const handleText = async (msg: Message) => {	
+const handleText = async (msg: Message) => {
 	if (msg.text?.startsWith("/")) {
 		// This is a command, ignore it
 		return;
 	}
 
-	console.log("Handling text message")
+	console.log("Handling text message");
 
 	const participant: Participant | undefined = await findOrCreateParticipant(msg);
 	if (!participant) {
-		console.error("Unable to find participant data")
-		return;		
-	}	
-	
+		console.error("Unable to find participant data");
+		return;
+	}
+
 	if (!participant.current_datawalk_id) {
-		// Try using the received message as a code to join a datawalk 
+		// Try using the received message as a code to join a datawalk
 		const code = msg.text?.split(" ")[0].trim().toUpperCase();
 
 		const datawalk = await DatawalkRepository.findByCode(code);
@@ -153,9 +170,9 @@ const handleText = async (msg: Message) => {
 		}
 	} else {
 		// Try to store the text message as a data point
-		storeTextOnlyDataPoint(msg);		
+		storeTextOnlyDataPoint(msg);
 	}
-}
+};
 
 const handleStart = async (msg: Message) => {
 	const participant: Participant | undefined = await findOrCreateParticipant(msg);
@@ -171,19 +188,13 @@ const handleStart = async (msg: Message) => {
 		return;
 	}
 
-	await bot.sendMessage(
-		msg.chat.id,
-		`Hi there, I'm Datawalk Bot 👋`,
-		{ parse_mode: "HTML" }
-	);
+	await bot.sendMessage(msg.chat.id, `Hi there, I'm Datawalk Bot 👋`, { parse_mode: "HTML" });
 
 	await bot.sendMessage(
 		msg.chat.id,
 		`I will help you collect data such as photos, videos, and audio during your Datawalk. Let me know when you want to create a new Datawalk using /create or join an existing Datawalk using /join!`,
 		{ parse_mode: "HTML" }
 	);
-
-	
 };
 
 const handleCreate = async (msg: Message) => {
@@ -323,6 +334,69 @@ const handleLeave = async (msg: Message) => {
 	}
 };
 
+const handleDisconnect = async (msg: Message) => {
+	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
+
+	if (participant?.current_datawalk_id) {
+		const datawalk = await DatawalkRepository.findById(participant.current_datawalk_id);
+
+		const name = msg.text?.replace("/disconnect", "").trim();
+		if (!name || name === "") {
+			await bot.sendMessage(
+				msg.chat.id,
+				`Please provide me the name of the Datawalk participant to disconnect (e.g. <b>John</b>).`,
+				{ parse_mode: "HTML" }
+			);
+			return;
+		}
+
+		if (name === "*") {
+			// Disconnect all participants			
+			const participantsDisconnect = await ParticipantRepository.find({current_datawalk_id : participant.current_datawalk_id});
+			const names = [];
+
+			for (let participantDisconnect of participantsDisconnect) {
+				names.push(participantDisconnect.first_name);
+
+				participantDisconnect.current_datawalk_id = null;
+				await ParticipantRepository.update(participantDisconnect.id, participantDisconnect);
+			}
+
+			await bot.sendMessage(
+				msg.chat.id,
+				`<b>${names.join(", ")}</b> are no longer participating in Datawalk with code <b>${datawalk?.code}</b>`,
+				{ parse_mode: "HTML" }
+			);
+		} else {
+			// Disconnect participant by name
+			const participantDisconnect = await ParticipantRepository.findByFirstNameAndDatawalk(name, participant.current_datawalk_id);
+
+			if (!participantDisconnect) {
+				await bot.sendMessage(
+					msg.chat.id,
+					`I did not find anyone by the name <b>${name}</b> that is participating in this Datawalk.`,
+					{ parse_mode: "HTML" }
+				);
+				return;
+			}
+
+			participantDisconnect.current_datawalk_id = null;
+			await ParticipantRepository.update(participantDisconnect.id, participantDisconnect);
+			await bot.sendMessage(
+				msg.chat.id,
+				`${participantDisconnect.first_name} is no longer participating in Datawalk with code <b>${datawalk?.code}</b>`,
+				{ parse_mode: "HTML" }
+			);
+			
+		}
+
+	} else {
+		await bot.sendMessage(msg.chat.id, `You are currently not participating in a Datawalk`, {
+			parse_mode: "HTML"
+		});
+	}
+};
+
 const handleArchive = async (msg: Message) => {
 	const code = msg.text?.replace("/archive", "").trim().toUpperCase();
 	if (!code || code === "") {
@@ -368,7 +442,9 @@ const handleNotify = async (msg: Message) => {
 	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
 
 	if (participant && participant.current_datawalk_id) {
-		const participants = await ParticipantRepository.find({current_datawalk_id : participant.current_datawalk_id});
+		const participants = await ParticipantRepository.find({
+			current_datawalk_id: participant.current_datawalk_id
+		});
 
 		for (const participant of participants) {
 			await bot.sendMessage(
@@ -415,9 +491,13 @@ bot.on("location", async (msg: Message) => {
 	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
 
 	if (!participant || !participant.current_datawalk_id) {
-		await bot.sendMessage(msg.chat.id, `Sorry, I was not able to store the location you sent. Please join a Datawalk first!`, {
-			parse_mode: "HTML"
-		});
+		await bot.sendMessage(
+			msg.chat.id,
+			`Sorry, I was not able to store the location you sent. Please join a Datawalk first!`,
+			{
+				parse_mode: "HTML"
+			}
+		);
 		return;
 	}
 
@@ -449,7 +529,7 @@ bot.on("edited_message", async (msg: Message) => {
 	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
 	const datawalk = await DatawalkRepository.findById(participant?.current_datawalk_id);
 
-	if (datawalk) {
+	if (datawalk && location) {
 		const trackpoint = await TrackPointRepository.create({
 			latitude: location.latitude,
 			longitude: location.longitude,
@@ -466,8 +546,10 @@ bot.on("edited_message", async (msg: Message) => {
 			orphan.trackpoint_id = trackpoint?.id;
 			await DataPointRepository.update(orphan.id, orphan);
 		}
-
+	} else {
+		console.log("Ignoring update message, it does not contain coordinates");
 	}
+
 });
 
 const findOrCreateParticipant = async (msg: Message) => {
@@ -515,13 +597,9 @@ const storeTextOnlyDataPoint = async (msg: Message) => {
 	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
 
 	if (!participant || !participant.current_datawalk_id) {
-		await bot.sendMessage(
-			msg.chat.id,
-			`Sorry, I was not able to store the text you sent.`,
-			{
-				parse_mode: "HTML"
-			}
-		);
+		await bot.sendMessage(msg.chat.id, `Sorry, I was not able to store the text you sent.`, {
+			parse_mode: "HTML"
+		});
 
 		return;
 	}
@@ -542,7 +620,7 @@ const storeTextOnlyDataPoint = async (msg: Message) => {
 		photoMessageId: msg.message_id,
 		locationExpected: true
 	};
-}
+};
 
 const storeDataPoint = async (msg: Message, file_id: string, media_type: string) => {
 	if (!file_id) {
@@ -585,7 +663,7 @@ const storeDataPoint = async (msg: Message, file_id: string, media_type: string)
 
 	// Download media
 	const download_path = await bot.downloadFile(file_id, DATA_MEDIA_ROOT);
-	const filename = download_path.split("/").pop();	
+	const filename = download_path.split("/").pop();
 	const extension = filename.split(".").pop() || "";
 
 	const mime_type = mime.lookup(extension) || "application/octet-stream";

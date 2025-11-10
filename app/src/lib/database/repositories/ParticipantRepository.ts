@@ -14,6 +14,11 @@ export const findByChatId = async (id: number) => {
 		.executeTakeFirst();
 };
 
+export const findByFirstNameAndDatawalk = async (first_name: string, datawalk_id : number) => {
+	return await db.selectFrom("participant").where("first_name", "=", first_name).where("current_datawalk_id", "=", datawalk_id).selectAll().executeTakeFirst();
+};
+
+
 export const find = async (criteria: Partial<Participant>) => {
 	let query = db.selectFrom("participant");
 
