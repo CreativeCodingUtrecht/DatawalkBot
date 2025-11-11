@@ -327,6 +327,18 @@ export const update = async (id: number, updateWith: DatawalkUpdate) => {
 	return datawalk;
 };
 
+export const beginDatawalk = async (id: number, timestamp: string | undefined) => {
+	await db.updateTable("datawalk").set({ begin_at : timestamp ? sql`datetime(${timestamp})` : sql`CURRENT_TIMESTAMP`}).where("id", "=", id).execute();
+	const datawalk = await findById(id);
+	return datawalk;
+};
+
+export const endDatawalk = async (id: number, timestamp: string | undefined) => {
+	await db.updateTable("datawalk").set({ end_at : timestamp ? sql`datetime(${timestamp})` : sql`CURRENT_TIMESTAMP`}).where("id", "=", id).execute();
+	const datawalk = await findById(id);
+	return datawalk;
+};
+
 export const create = async (datawalk: NewDatawalk) => {
 	if (!datawalk.uuid || !validate_uuid(datawalk.uuid)) {
 		datawalk.uuid = uuidv4();

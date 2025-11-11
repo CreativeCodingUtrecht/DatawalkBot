@@ -14,6 +14,8 @@ export interface DatawalkTable {
 	uuid: Generated<string>;
 	code: Generated<string>;
 	status: Generated<"active" | "archived">;
+	begin_at: Date | null;	
+	end_at: Date | null;
 }
 
 export type Datawalk = Selectable<DatawalkTable>;
@@ -47,7 +49,7 @@ export type ParticipantUpdate = Updateable<ParticipantTable>;
 export type ParticipantWithData = Participant & {
 	trackpoints: TrackPoint[];
 	datapoints: DataPointWithCoordinates[];
-
+}
 
 export interface TrackPointTable {
 	id: Generated<number>;
@@ -85,3 +87,29 @@ export type DataPointWithCoordinates = DataPoint & {
 	latitude: number;
 	longitude: number;
 }
+
+// export interface BirdDetectionTable { 
+// 	id: Generated<number>;
+// 	station_id: number;
+// 	created_at: Generated<Date>;
+//     confidence: number;
+//     probability: number;
+//     score: number;
+//     certainty: string;
+//     algorithm: string;
+//     lat: number;
+//     lon: number;
+//     commonName: string;
+//     scientificName: string;
+//     color: string;
+//     imageUrl: string;
+//     thumbnailUrl: string;
+//     pngUrl: string;
+//     soundscapeUrl: string;
+//     startTime: number;
+//     endTime: number;
+// }
+
+// export type BirdDetection = Selectable<BirdDetectionTable>;
+// export type NewBirdDetection = Insertable<BirdDetectionTable>;
+// export type BirdDetectionUpdate = Updateable<BirdDetectionTable>;

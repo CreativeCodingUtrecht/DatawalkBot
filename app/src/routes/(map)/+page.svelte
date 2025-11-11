@@ -5,7 +5,7 @@
 	export let data: PageData;
 	const { datawalks } = data;
 
-	console.log("Aggregated datawalks:", datawalks);
+	// console.log("Aggregated datawalks:", datawalks);
 </script>
 
 <div class="container w-full">

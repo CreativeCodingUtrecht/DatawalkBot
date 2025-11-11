@@ -92,6 +92,29 @@ bot.onText(/\/list/, async (msg: Message) => {
 	}
 });
 
+bot.onText(/\/begin/, async (msg: Message) => {
+	if (isPrivateMessage(msg)) {
+		await handleBegin(msg);
+	} else {
+		await bot.sendMessage(
+			msg.chat.id,
+			"Sorry, you can only mark the beginning of a Datawalks in a private chat."
+		);
+	}
+});
+
+bot.onText(/\/end/, async (msg: Message) => {
+	if (isPrivateMessage(msg)) {
+		await handleEnd(msg);
+	} else {
+		await bot.sendMessage(
+			msg.chat.id,
+			"Sorry, you can only mark the end of a Datawalks in a private chat."
+		);
+	}
+});
+
+
 bot.onText(/\/status/, async (msg: Message) => {
 	if (isPrivateMessage(msg)) {
 		await handleStatus(msg);
@@ -303,6 +326,88 @@ const handleStatus = async (msg: Message) => {
 			await bot.sendMessage(
 				msg.chat.id,
 				`You are participating in Datawalk with code <b>${datawalk.code}</b>`,
+				{ parse_mode: "HTML" }
+			);
+			return;
+		}
+	}
+
+	await bot.sendMessage(msg.chat.id, `You are currently not participating in a Datawalk`, {
+		parse_mode: "HTML"
+	});
+};
+
+const handleBegin = async (msg: Message) => {
+	const timestamp = msg.text?.replace("/begin", "").trim();
+
+	let beginDate;
+
+	if (timestamp && timestamp.length > 0) {
+		beginDate = new Date(timestamp);
+		if (isNaN(beginDate.getTime())) {
+			await bot.sendMessage(
+				msg.chat.id,
+				`The timestamp your provided is not valid.`,
+				{ parse_mode: "HTML" }
+			);
+			return;  		
+		}
+
+		console.log("Timestamp:", beginDate);
+	}
+
+	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
+
+	if (participant && participant.current_datawalk_id) {
+		let datawalk = await DatawalkRepository.findById(participant.current_datawalk_id);
+		
+		if (datawalk) {
+			datawalk = await DatawalkRepository.beginDatawalk(datawalk.id, beginDate?.toISOString());
+
+			await bot.sendMessage(
+				msg.chat.id,
+				`Thanks for marking the beginning of Datawalk with code <b>${datawalk.code}</b>`,
+				{ parse_mode: "HTML" }
+			);
+			return;
+		}
+	}
+
+	await bot.sendMessage(msg.chat.id, `You are currently not participating in a Datawalk`, {
+		parse_mode: "HTML"
+	});
+};
+
+const handleEnd = async (msg: Message) => {
+	const timestamp = msg.text?.replace("/end", "").trim();
+
+	let endDate;
+
+	if (timestamp && timestamp.length > 0) {
+		endDate = new Date(timestamp);
+		if (isNaN(endDate.getTime())) {
+			await bot.sendMessage(
+				msg.chat.id,
+				`The timestamp your provided is not valid.`,
+				{ parse_mode: "HTML" }
+			);
+			return;  		
+		}
+
+		console.log("Timestamp:", endDate);
+	}
+
+	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
+
+	if (participant && participant.current_datawalk_id) {
+		let datawalk = await DatawalkRepository.findById(participant.current_datawalk_id);
+		
+		if (datawalk) {
+			datawalk = await DatawalkRepository.endDatawalk(datawalk.id, endDate?.toISOString());
+
+			await bot.sendMessage(
+				msg.chat.id,
+				`Thanks for marking the ending of Datawalk with code <b>${datawalk.code}</b>`,
 				{ parse_mode: "HTML" }
 			);
 			return;

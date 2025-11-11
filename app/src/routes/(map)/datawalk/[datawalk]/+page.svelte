@@ -17,16 +17,19 @@
 	const coordinatesAll: any = [];
 	let totalDistance : number = 0;
 	for (const participant of datawalk.participants_contributing) {
-		console.log("Participant:", participant);
-		const coordinates = participant.trackpoints.map((trackpoint: TrackPoint) => {
+		// console.log("Participant:", participant);
+		let coordinates = participant.trackpoints.map((trackpoint: TrackPoint) => {
 			return [trackpoint.longitude, trackpoint.latitude];
 		});
+
+		// coordinates = smooth(coordinates,8);
+
 		coordinatesAll.push(...coordinates);
 
 		if (coordinates.length > 2) {
 			const line = turf.lineString(coordinates);
 			const distance = turf.length(line, { units: "meters" });
-			console.log("Participant:", participant.first_name, "Distance:", distance);
+			// console.log("Participant:", participant.first_name, "Distance:", distance);
 			totalDistance += distance;
 		}
 	}
@@ -76,6 +79,17 @@
 		pitch: 0,
 		bearing: 0
 	};
+
+	function smooth(coords, windowSize = 3) {
+  		return coords.map((_, i) => {
+			const start = Math.max(0, i - windowSize);
+			const end = Math.min(coords.length - 1, i + windowSize);
+			const subset = coords.slice(start, end + 1);
+			const lon = subset.reduce((sum, p) => sum + p[0], 0) / subset.length;
+			const lat = subset.reduce((sum, p) => sum + p[1], 0) / subset.length;
+			return [lon, lat];
+		  });
+	}
 
 	onMount(() => {
 		const url = $page.url;
@@ -144,15 +158,18 @@
 
 				const color = css(colorFromRange("neutral"));
 
-				const coordinates = participant.trackpoints.map((trackpoint: TrackPoint) => {
+				let coordinates = participant.trackpoints.map((trackpoint: TrackPoint) => {
 					return [trackpoint.longitude, trackpoint.latitude];
 				});
 
 				if (coordinates.length > 2) {
+					// const coordinatesSmooth = smooth(coordinates);
 					const line = turf.lineString(coordinates);
 					const distance = turf.length(line, { units: "meters" });
 					userStatistics.distance = distance;
 				}
+
+				// coordinates = smooth(coordinates);
 
 				// Show trackpoints
 				if (showTrackpoints) {
