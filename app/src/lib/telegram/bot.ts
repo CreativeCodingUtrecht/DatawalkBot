@@ -114,7 +114,6 @@ bot.onText(/\/end/, async (msg: Message) => {
 	}
 });
 
-
 bot.onText(/\/status/, async (msg: Message) => {
 	if (isPrivateMessage(msg)) {
 		await handleStatus(msg);
@@ -148,6 +147,17 @@ bot.onText(/\/archive/, async (msg: Message) => {
 bot.onText(/\/notify/, async (msg: Message) => {
 	if (isPrivateMessage(msg)) {
 		await handleNotify(msg);
+	} else {
+		await bot.sendMessage(
+			msg.chat.id,
+			"Sorry, you can only notify participants of a Datawalk in a private chat."
+		);
+	}
+});
+
+bot.onText(/\/birdweather/, async (msg: Message) => {
+	if (isPrivateMessage(msg)) {
+		await handleBirdWeather(msg);
 	} else {
 		await bot.sendMessage(
 			msg.chat.id,
@@ -345,12 +355,10 @@ const handleBegin = async (msg: Message) => {
 	if (timestamp && timestamp.length > 0) {
 		beginDate = new Date(timestamp);
 		if (isNaN(beginDate.getTime())) {
-			await bot.sendMessage(
-				msg.chat.id,
-				`The timestamp your provided is not valid.`,
-				{ parse_mode: "HTML" }
-			);
-			return;  		
+			await bot.sendMessage(msg.chat.id, `The timestamp your provided is not valid.`, {
+				parse_mode: "HTML"
+			});
+			return;
 		}
 
 		console.log("Timestamp:", beginDate);
@@ -360,7 +368,7 @@ const handleBegin = async (msg: Message) => {
 
 	if (participant && participant.current_datawalk_id) {
 		let datawalk = await DatawalkRepository.findById(participant.current_datawalk_id);
-		
+
 		if (datawalk) {
 			datawalk = await DatawalkRepository.beginDatawalk(datawalk.id, beginDate?.toISOString());
 
@@ -386,12 +394,10 @@ const handleEnd = async (msg: Message) => {
 	if (timestamp && timestamp.length > 0) {
 		endDate = new Date(timestamp);
 		if (isNaN(endDate.getTime())) {
-			await bot.sendMessage(
-				msg.chat.id,
-				`The timestamp your provided is not valid.`,
-				{ parse_mode: "HTML" }
-			);
-			return;  		
+			await bot.sendMessage(msg.chat.id, `The timestamp your provided is not valid.`, {
+				parse_mode: "HTML"
+			});
+			return;
 		}
 
 		console.log("Timestamp:", endDate);
@@ -401,7 +407,7 @@ const handleEnd = async (msg: Message) => {
 
 	if (participant && participant.current_datawalk_id) {
 		let datawalk = await DatawalkRepository.findById(participant.current_datawalk_id);
-		
+
 		if (datawalk) {
 			datawalk = await DatawalkRepository.endDatawalk(datawalk.id, endDate?.toISOString());
 
@@ -456,8 +462,10 @@ const handleDisconnect = async (msg: Message) => {
 		}
 
 		if (name === "*") {
-			// Disconnect all participants			
-			const participantsDisconnect = await ParticipantRepository.find({current_datawalk_id : participant.current_datawalk_id});
+			// Disconnect all participants
+			const participantsDisconnect = await ParticipantRepository.find({
+				current_datawalk_id: participant.current_datawalk_id
+			});
 			const names = [];
 
 			for (let participantDisconnect of participantsDisconnect) {
@@ -474,7 +482,10 @@ const handleDisconnect = async (msg: Message) => {
 			);
 		} else {
 			// Disconnect participant by name
-			const participantDisconnect = await ParticipantRepository.findByFirstNameAndDatawalk(name, participant.current_datawalk_id);
+			const participantDisconnect = await ParticipantRepository.findByFirstNameAndDatawalk(
+				name,
+				participant.current_datawalk_id
+			);
 
 			if (!participantDisconnect) {
 				await bot.sendMessage(
@@ -492,9 +503,7 @@ const handleDisconnect = async (msg: Message) => {
 				`${participantDisconnect.first_name} is no longer participating in Datawalk with code <b>${datawalk?.code}</b>`,
 				{ parse_mode: "HTML" }
 			);
-			
 		}
-
 	} else {
 		await bot.sendMessage(msg.chat.id, `You are currently not participating in a Datawalk`, {
 			parse_mode: "HTML"
@@ -564,6 +573,66 @@ const handleNotify = async (msg: Message) => {
 			`Sorry, unable to send notification to participants of the Datawalk. Please join a Datawalk first.`,
 			{ parse_mode: "HTML" }
 		);
+	}
+};
+
+const handleBirdWeather = async (msg: Message) => {
+	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
+
+	if (participant?.current_datawalk_id) {
+		const station = msg.text?.replace("/birdweather", "").trim();
+
+		const datawalk = await DatawalkRepository.findById(participant.current_datawalk_id);
+
+		if (!datawalk) {
+			await bot.sendMessage(
+				msg.chat.id,
+				`Sorry, I was unable to retrieve information of the Datawalk you're currently participating.`,
+				{ parse_mode: "HTML" }
+			);
+			return;
+		}
+
+		if (!station || station === "") {
+			// Unsubscribe from any BirdWeather station
+
+			datawalk.birdweather = null;
+			await DatawalkRepository.update(datawalk.id, datawalk);
+
+			await bot.sendMessage(
+				msg.chat.id,
+				`🪶 Datawalk <b>${datawalk.name}</b> with code <b>${datawalk.code}</b> is no longer listening to any BirdWeather stations.`,
+				{
+					parse_mode: "HTML"
+				}
+			);
+			return;
+		} else {
+			// Subscribe to BirdWeather station with provided station ID (e.g. 17003)
+
+			if (isNaN(+station)) {
+				await bot.sendMessage(
+					msg.chat.id,
+					`Please provide me with the numeric BirdWeather station ID (e.g. 17003) to listen to.`,
+					{ parse_mode: "HTML" }
+				);
+				return;
+			}
+
+			datawalk.birdweather = Number(station);
+			await DatawalkRepository.update(datawalk.id, datawalk);
+
+			await bot.sendMessage(msg.chat.id,`🪶 Datawalk <b>${datawalk.name}</b> with code <b>${datawalk.code}</b> is now listening to BirdWeather station <b>${station}</b>.`, {
+				parse_mode: "HTML"}
+			);
+			return;
+
+			return;
+		}
+	} else {
+		await bot.sendMessage(msg.chat.id, `You are currently not participating in a Datawalk`, {
+			parse_mode: "HTML"
+		});
 	}
 };
 
@@ -654,7 +723,6 @@ bot.on("edited_message", async (msg: Message) => {
 	} else {
 		console.log("Ignoring update message, it does not contain coordinates");
 	}
-
 });
 
 const findOrCreateParticipant = async (msg: Message) => {

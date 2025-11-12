@@ -46,6 +46,10 @@ export const find = async (criteria: Partial<Datawalk>) => {
 		query = query.where("status", "=", criteria.status);
 	}
 
+	if (criteria.birdweather) {
+		query = query.where("birdweather", "=", criteria.birdweather);
+	}
+
 	if (criteria.created_at) {
 		query = query.where("created_at", "=", criteria.created_at);
 	}

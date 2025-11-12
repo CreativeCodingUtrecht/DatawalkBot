@@ -14,6 +14,7 @@ export interface DatawalkTable {
 	uuid: Generated<string>;
 	code: Generated<string>;
 	status: Generated<"active" | "archived">;
+	birdweather: number | null;
 	begin_at: Date | null;	
 	end_at: Date | null;
 }
