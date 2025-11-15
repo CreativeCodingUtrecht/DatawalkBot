@@ -14,9 +14,9 @@ if (!BOT_TOKEN) {
 	throw new Error("BOT_TOKEN is not set");
 }
 
-const URL_BASE = env.URL_BASE;
+const URL_BASE = env.ORIGIN;
 if (!URL_BASE) {
-	throw new Error("URL_BASE is not set");
+	throw new Error("URL_BASE can not be set by ORIGIN");
 }
 
 export const bot = new TelegramBot(BOT_TOKEN);
