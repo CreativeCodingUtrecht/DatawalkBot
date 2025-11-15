@@ -382,7 +382,7 @@ const handleStatus = async (msg: Message) => {
 	if (participant && participant.current_datawalk_id) {
 		const datawalk = await DatawalkRepository.findById(participant.current_datawalk_id);
 		if (datawalk) {
-			let message = `You are participating in Datawalk with code <b><a href="${URL_BASE}/${datawalk.code}">${datawalk.code}</a></b>\n`;
+			let message = `You are participating in Datawalk with code <b><a href="${URL_BASE}/datawalk/${datawalk.code}">${datawalk.code}</a></b>\n`;
 
 			// Retrieve list of participants and contributors 
 
