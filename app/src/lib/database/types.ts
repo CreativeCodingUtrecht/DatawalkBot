@@ -5,6 +5,7 @@ export interface Database {
 	participant: ParticipantTable;
 	trackpoint: TrackPointTable;
 	datapoint: DataPointTable;
+	birddetection: BirdDetectionTable;
 }
 
 export interface DatawalkTable {
@@ -15,6 +16,7 @@ export interface DatawalkTable {
 	code: Generated<string>;
 	status: Generated<"active" | "archived">;
 	birdweather: number | null;
+	locale: Generated<string>;
 	begin_at: Date | null;	
 	end_at: Date | null;
 }
@@ -89,28 +91,28 @@ export type DataPointWithCoordinates = DataPoint & {
 	longitude: number;
 }
 
-// export interface BirdDetectionTable { 
-// 	id: Generated<number>;
-// 	station_id: number;
-// 	created_at: Generated<Date>;
-//     confidence: number;
-//     probability: number;
-//     score: number;
-//     certainty: string;
-//     algorithm: string;
-//     lat: number;
-//     lon: number;
-//     commonName: string;
-//     scientificName: string;
-//     color: string;
-//     imageUrl: string;
-//     thumbnailUrl: string;
-//     pngUrl: string;
-//     soundscapeUrl: string;
-//     startTime: number;
-//     endTime: number;
-// }
+export interface BirdDetectionTable { 
+	id: Generated<number>;
+	created_at: Generated<Date>;
+	notified_at: Date | null;
+	detected_at: Date | null;
+	datawalk_id: number;
+	station_id: number;
+	species_id: number;
+    confidence: number;
+    probability: number;
+    score: number;
+    certainty: string;
+    algorithm: string;
+    lat: number;
+    lon: number;
+    commonName: string;
+    scientificName: string;
+    imageUrl: string;
+    thumbnailUrl: string;
+    soundscapeUrl: string;
+}
 
-// export type BirdDetection = Selectable<BirdDetectionTable>;
-// export type NewBirdDetection = Insertable<BirdDetectionTable>;
-// export type BirdDetectionUpdate = Updateable<BirdDetectionTable>;
+export type BirdDetection = Selectable<BirdDetectionTable>;
+export type NewBirdDetection = Insertable<BirdDetectionTable>;
+export type BirdDetectionUpdate = Updateable<BirdDetectionTable>;

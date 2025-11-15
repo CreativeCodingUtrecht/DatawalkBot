@@ -14,6 +14,11 @@ if (!BOT_TOKEN) {
 	throw new Error("BOT_TOKEN is not set");
 }
 
+const URL_BASE = env.URL_BASE;
+if (!URL_BASE) {
+	throw new Error("URL_BASE is not set");
+}
+
 export const bot = new TelegramBot(BOT_TOKEN);
 const locationQueue: any = {};
 
@@ -77,6 +82,17 @@ bot.onText(/\/name/, async (msg: Message) => {
 		await bot.sendMessage(
 			msg.chat.id,
 			"Sorry, you can only change the name of an existing Datawalk in a private chat."
+		);
+	}
+});
+
+bot.onText(/\/locale/, async (msg: Message) => {
+	if (isPrivateMessage(msg)) {
+		await handleLocale(msg);
+	} else {
+		await bot.sendMessage(
+			msg.chat.id,
+			"Sorry, you can only change the locale of an existing Datawalk in a private chat."
 		);
 	}
 });
@@ -295,6 +311,39 @@ const handleList = async (msg: Message) => {
 	}
 };
 
+const handleLocale = async (msg: Message) => {
+	const locale = msg.text?.replace("/locale", "").trim().toLowerCase();
+	if (!locale || locale === "" || locale.length != 2) {
+		await bot.sendMessage(msg.chat.id, `Please provide me with a valid locale for the Datawalk`, {
+			parse_mode: "HTML"
+		});
+		return;
+	}
+
+	const participant = await ParticipantRepository.findByChatId(msg.chat.id);
+
+	if (participant?.current_datawalk_id) {
+		const datawalk = await DatawalkRepository.findById(participant.current_datawalk_id);
+		datawalk.locale = locale;
+		await DatawalkRepository.update(datawalk.id, datawalk);
+
+		await bot.sendMessage(
+			msg.chat.id,
+			`Okay, I've set the locale of the Datawalk to <b>${datawalk?.locale}</b>!`,
+			{ parse_mode: "HTML" }
+		);
+	} else {
+		await bot.sendMessage(
+			msg.chat.id,
+			`You are currently not participating in a Datawalk. Please join the Datawalk you want to change its locale!`,
+			{
+				parse_mode: "HTML"
+			}
+		);
+	}
+};
+
+
 const handleName = async (msg: Message) => {
 	const name = msg.text?.replace("/name", "").trim();
 	if (!name || name === "") {
@@ -333,9 +382,18 @@ const handleStatus = async (msg: Message) => {
 	if (participant && participant.current_datawalk_id) {
 		const datawalk = await DatawalkRepository.findById(participant.current_datawalk_id);
 		if (datawalk) {
+			let message = `You are participating in Datawalk with code <b><a href="${URL_BASE}/${datawalk.code}">${datawalk.code}</a></b>\n`;
+
+			// Retrieve list of participants and contributors 
+
+			// Add BirdWeather station details
+			if (datawalk.birdweather) {
+				message += `\n🪶 This Datawalk is listening to BirdWeather station <b>${datawalk.birdweather}</b>.\n`;
+			}
+
 			await bot.sendMessage(
 				msg.chat.id,
-				`You are participating in Datawalk with code <b>${datawalk.code}</b>`,
+				message,
 				{ parse_mode: "HTML" }
 			);
 			return;
@@ -625,8 +683,6 @@ const handleBirdWeather = async (msg: Message) => {
 			await bot.sendMessage(msg.chat.id,`🪶 Datawalk <b>${datawalk.name}</b> with code <b>${datawalk.code}</b> is now listening to BirdWeather station <b>${station}</b>.`, {
 				parse_mode: "HTML"}
 			);
-			return;
-
 			return;
 		}
 	} else {

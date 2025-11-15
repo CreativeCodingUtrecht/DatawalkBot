@@ -1,4 +1,5 @@
 import { v4 as uuidv4, validate as validate_uuid } from "uuid";
+import type { NotNull } from 'kysely';
 import db from "$lib/database";
 import type {
 	DatawalkUpdate,
@@ -50,11 +51,70 @@ export const find = async (criteria: Partial<Datawalk>) => {
 		query = query.where("birdweather", "=", criteria.birdweather);
 	}
 
+	if (criteria.locale) {
+		query = query.where("locale", "=", criteria.locale);
+	}
+
 	if (criteria.created_at) {
 		query = query.where("created_at", "=", criteria.created_at);
 	}
 
 	return await query.orderBy("created_at", "desc").selectAll().execute();
+};
+
+export const findWithParticipantsByBirdWeatherStation = async (): Promise<DatawalkWithParticipants> => {
+	return await db
+		.selectFrom("datawalk")
+		.selectAll("datawalk")
+		.where("datawalk.birdweather", 'is not', null)
+		.select((eb) => [
+			// participants
+			jsonArrayFrom(
+				eb
+					.selectFrom("participant")
+					.select([
+						"id",
+						"uuid",
+						"created_at",
+						"chat_id",
+						"username",
+						"first_name",
+						"last_name",
+						"organization",
+						"email"
+					])
+					.whereRef("participant.current_datawalk_id", "=", "datawalk.id")
+			).as("participants_current")
+		])
+		.select((eb) => [
+			// contributing participants
+			jsonArrayFrom(
+				eb
+					.selectFrom("participant")
+					.select([
+						"id",
+						"uuid",
+						"created_at",
+						"chat_id",
+						"username",
+						"first_name",
+						"last_name",
+						"organization",
+						"email"
+					])
+					.where((eb) =>
+						eb.exists(
+							eb
+								.selectFrom("trackpoint")
+								.select("participant.id")
+								.whereRef("trackpoint.participant_id", "=", "participant.id")
+								.whereRef("trackpoint.datawalk_id", "=", "datawalk.id")
+						)
+					)
+			).as("participants_contributing")
+		])
+		.$narrowType<{ birdweather: NotNull }>()
+		.execute();
 };
 
 export const findWithParticipantsByCode = async (
